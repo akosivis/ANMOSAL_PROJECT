@@ -5,7 +5,7 @@ public class Player extends Rectangle{
 	int x;
 	int y;
 	int speed = 10;
-	int diameter = 50;
+	int diameter = 32;
 	
 	public Player(int x, int y){
 		this.x = x;
