@@ -9,7 +9,6 @@ public class ChatClient{
     private final static String server_ip = "202.92.144.45";
     private final static int port = 80;
 
-
     private Socket openConnection(String server, int port){
         Socket socket = null;
         try{
@@ -21,6 +20,19 @@ public class ChatClient{
         return socket;
     }
 
+    private TcpPacket getLobbyPacket(){
+        TcpPacket.Builder packet = TcpPacket.newBuilder();
+        packet.setType(TcpPacket.PacketType.CREATE_LOBBY);
+            
+        Scanner sc = new Scanner(System.in);
+        System.out.println("Max no. of players: ");
+        int max = sc.nextInt();
+
+        TcpPacket.CreateLobbyPacket.Builder create = TcpPacket.CreateLobbyPacket.newBuilder();
+        create.setType(TcpPacket.PacketType.CREATE_LOBBY).setMaxPlayers(max);
+
+        return packet.build();
+    }
 
     public static void main(String args[]){
         try{
@@ -31,22 +43,14 @@ public class ChatClient{
             OutputStream output = socket.getOutputStream();
             InputStream input = socket.getInputStream();
 
+            client.getLobbyPacket().writeDelimitedTo(output);
             
-            
+            //problem getting response
+            TcpPacket response = TcpPacket.parseDelimitedFrom(input);
+            System.out.println(response);
 
-
-            //create Lobby Packet
-            TcpPacket.Builder packet = TcpPacket.newBuilder();
-            packet.setType(TcpPacket.PacketType.CREATE_LOBBY);
-            
-            Scanner sc = new Scanner(System.in);
-            System.out.println("Max no. of players: ");
-            int max = sc.nextInt();
-
-            TcpPacket.CreateLobbyPacket.Builder create = TcpPacket.CreateLobbyPacket.newBuilder();
-            create.setType(TcpPacket.PacketType.CREATE_LOBBY).setMaxPlayers(max);
-            //somepacket.writeDelimitedTo(output);
-            //packet.build().writeTo();
+            output.close();
+            input.close();
             socket.close();
 
         }catch(IOException e){
