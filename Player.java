@@ -4,7 +4,7 @@ public class Player extends Rectangle{
 	int id;
 	int x;
 	int y;
-	int speed = 20;
+	int speed = 64;
 	int diameter = 32;
 	
 	public Player(int x, int y){

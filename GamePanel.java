@@ -26,6 +26,9 @@ public class GamePanel extends JPanel implements KeyListener, ActionListener{
 	int team = 1;
 	int timer = 30;
 	
+	int PlayerTileX;
+	int PlayerTileY;
+	
 	boolean movementEnabled = true;
 	
 	int[][] map = {{0,0,0,0,0,0,0,0,0,0},
@@ -54,7 +57,7 @@ public class GamePanel extends JPanel implements KeyListener, ActionListener{
 		this.requestFocusInWindow();
 		this.addKeyListener(this);
 		
-		player = new Player(0,0);
+		player = new Player(16,16);
 		
 		refreshrate = new Timer (100,this);
 		roundTimer =  new Timer (1000,this);
@@ -113,34 +116,50 @@ public class GamePanel extends JPanel implements KeyListener, ActionListener{
 
 	@Override
 	public void keyReleased(KeyEvent e) {
-		// TODO Auto-generated method stub
+		
+		
 		if(e.getKeyCode() == KeyEvent.VK_W){
-			direction = "U";
+			if(player.y - 64 > 0){
+				direction = "U";
+				if(map[PlayerTileY-1][PlayerTileX]!=3)
+					player.y = player.y - 64;
+			}
 			this.repaint();
 		}
 		
 		if(movementEnabled==true){
 			if(e.getKeyCode() == KeyEvent.VK_S){
-				direction = "D";
+				if(player.y + 64 < this.getHeight()){
+					direction = "D";
+					if(map[PlayerTileY+1][PlayerTileX]!=3)
+					player.y = player.y + 64;
+				}
 				this.repaint();
 			}
 			
 			if(e.getKeyCode() == KeyEvent.VK_D){
-				direction = "R";
+				if(player.x + 64 < this.getWidth()){
+					direction = "R";
+					if(map[PlayerTileY][PlayerTileX+1]!=3)
+						player.x = player.x + 64;
+				}
 				this.repaint();
 			}
 			
 			if(e.getKeyCode() == KeyEvent.VK_A){
-				direction = "L";
+				if(player.x - 64 > 0){
+					direction = "L";
+					if(map[PlayerTileY][PlayerTileX-1]!=3)
+					player.x = player.x - 64;
+				}
 				this.repaint();
 			}
 			
 			if(e.getKeyCode() == KeyEvent.VK_Q){
 				team = (team % 2 ) + 1;
 			}
-		}else{
-			direction="N";
 		}
+		
 }
 
 	@Override
@@ -152,26 +171,7 @@ public class GamePanel extends JPanel implements KeyListener, ActionListener{
 	@Override
 	public void actionPerformed(ActionEvent k1) {
 		// TODO Auto-generated method stub
-		switch (direction) {
-		case "U":
-			if(player.y >= 0)
-				player.moveUP();
-			break;
-		case "D":
-			if(player.y <= 640 - player.diameter)
-				player.moveDown();
-			break;
-		case "L":
-			if(player.x >= 0)
-				player.moveLeft();
-			break;
-		case "R":
-			if(player.x <= 640 - player.diameter)
-				player.moveRight();
-			break;
-		default:
-			break;
-		}
+		
 		
 		if(k1.getSource() == roundTimer){
 			if(timer > 0)
@@ -182,42 +182,14 @@ public class GamePanel extends JPanel implements KeyListener, ActionListener{
 		}
 		
 		if(k1.getSource()== refreshrate){
-			int PlayerTileX = (player.x+32) / 64;
-			int PlayerTileY = (player.y+40) / 64;
+			PlayerTileX = (player.x) / 64;
+			PlayerTileY = (player.y) / 64;
 			
+			map[PlayerTileY][PlayerTileX] = team;
+
 			if(timer == 0){
 				movementEnabled = false;
 				direction = "N";
-			}
-			
-			for(int i = 0 ; i < collisionRect.length; i ++){
-				for(int j = 0 ; j < collisionRect.length; j ++){
-					if(player.intersects(collisionRect[i][j])){
-						if(map[i][j]==3){
-							switch (direction) {
-							case "U":
-								direction = "D";
-								break;
-							case "D":
-								direction = "U";
-								break;
-							case "L":
-								direction = "R";
-								break;
-							case "R":
-								direction = "L";
-								break;
-							default:
-								direction="N";
-								break;
-							}
-						}
-						else{
-							map[i][j]= team;
-						}
-					}
-	
-				}
 			}
 		}
 		
