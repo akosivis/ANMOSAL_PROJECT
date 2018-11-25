@@ -2,19 +2,25 @@ import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.Graphics;
-import java.awt.Rectangle;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.awt.image.BufferedImage;
 import java.io.File;
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
+import java.net.InetAddress;
+import java.net.SocketException;
+import java.net.UnknownHostException;
 
 import javax.imageio.ImageIO;
 import javax.swing.JPanel;
 import javax.swing.Timer;
 
-public class GamePanel extends JPanel implements KeyListener, ActionListener{
+public class GamePanel extends JPanel implements KeyListener, ActionListener, Runnable{
 
 	Player player;
 	Timer refreshrate;
@@ -25,24 +31,18 @@ public class GamePanel extends JPanel implements KeyListener, ActionListener{
 	
 	int team = 1;
 	int timer = 30;
+	int tileDimension = 32;
 	
 	int PlayerTileX;
 	int PlayerTileY;
 	
 	boolean movementEnabled = true;
 	
-	int[][] map = {{0,0,0,0,0,0,0,0,0,0},
-				   {0,0,0,0,0,0,0,0,0,0},
-				   {0,0,0,0,0,0,0,0,0,0},
-				   {0,0,0,3,0,0,3,0,0,0},
-				   {0,0,0,0,0,0,0,0,0,0},
-				   {0,0,0,0,0,0,0,0,0,0},
-				   {0,0,0,3,0,0,3,0,0,0},
-				   {0,0,0,0,0,0,0,0,0,0},
-				   {0,0,0,0,0,0,0,0,0,0},
-				   {0,0,0,0,0,0,0,0,0,0}};
+	int[][] map= new int[10][20];
 	
-	Rectangle[][] collisionRect = new Rectangle[10][10]; 
+	byte[] sendData = new byte[1024];
+	DatagramSocket clientSocket = null;
+//	Rectangle[][] collisionRect = new Rectangle[10][10]; 
 	
 	public GamePanel(){
 	
@@ -52,18 +52,27 @@ public class GamePanel extends JPanel implements KeyListener, ActionListener{
 
 		}
 	
-		this.setPreferredSize(new Dimension(640,640));
+		this.setPreferredSize(new Dimension(tileDimension * 20,tileDimension * 10));
 		this.setFocusable(true);
 		this.requestFocusInWindow();
 		this.addKeyListener(this);
 		
-		player = new Player(16,16);
+		player = new Player( tileDimension/4, tileDimension/4, tileDimension);
+		
+		try {
+			clientSocket = new DatagramSocket(4443, InetAddress.getByName("localhost"));
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 		
 		refreshrate = new Timer (100,this);
 		roundTimer =  new Timer (1000,this);
 		
 		roundTimer.start();
 		refreshrate.start();
+		
+		
 	}
 	
 	public void paintComponent(Graphics g){
@@ -73,9 +82,9 @@ public class GamePanel extends JPanel implements KeyListener, ActionListener{
 		int redCount =  0;
 		
 		for(int mapy = 0; mapy < map.length; mapy++){
-			for(int mapx = 0; mapx < map.length; mapx++){
-				g.drawImage(tiles.getSubimage(map[mapy][mapx] * 64, 0, 64, 64), 64 * mapx, 64 * mapy,this);
-				collisionRect[mapy][mapx] = new Rectangle(mapx * 64, mapy * 64 ,64,64);
+			for(int mapx = 0; mapx < map[0].length; mapx++){
+				g.drawImage(tiles.getSubimage(map[mapy][mapx] * 64, 0, 64, 64), tileDimension * mapx, tileDimension * mapy,this);
+//				collisionRect[mapy][mapx] = new Rectangle(mapx * tileDimension, mapy * tileDimension ,tileDimension,tileDimension);
 				
 				if(map[mapy][mapx] == 1){
 					redCount++;
@@ -92,6 +101,22 @@ public class GamePanel extends JPanel implements KeyListener, ActionListener{
 		
 		if(timer == 0){
 			showScore(g, redCount,blueCount);
+		}
+	}
+	public void convertData(byte[] received){
+		try {
+			String rcvData = new String(received,"UTF-8");
+//			System.out.println(rcvData);
+			// Updates the map
+			for(int mapy = 0; mapy < map.length; mapy++){
+//				System.out.println(rcvData.substring(,mapy * map.length + map[0].length));	
+				for(int mapx = 0; mapx < map[0].length; mapx++){
+					map[mapy][mapx] = Integer.parseInt(rcvData.substring((mapy * map[0].length) + mapx, (mapy * map[0].length) + mapx+1));
+				}
+			}
+		} catch (UnsupportedEncodingException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
 	}
 	
@@ -119,44 +144,54 @@ public class GamePanel extends JPanel implements KeyListener, ActionListener{
 		
 		
 		if(e.getKeyCode() == KeyEvent.VK_W){
-			if(player.y - 64 > 0){
+			if(player.y - tileDimension > 0){
 				direction = "U";
 				if(map[PlayerTileY-1][PlayerTileX]!=3)
-					player.y = player.y - 64;
+					player.y = player.y - tileDimension;
 			}
 			this.repaint();
 		}
 		
 		if(movementEnabled==true){
 			if(e.getKeyCode() == KeyEvent.VK_S){
-				if(player.y + 64 < this.getHeight()){
+				if(player.y + tileDimension < this.getHeight()){
 					direction = "D";
 					if(map[PlayerTileY+1][PlayerTileX]!=3)
-					player.y = player.y + 64;
+					player.y = player.y + tileDimension;
 				}
 				this.repaint();
 			}
 			
 			if(e.getKeyCode() == KeyEvent.VK_D){
-				if(player.x + 64 < this.getWidth()){
+				if(player.x + tileDimension < this.getWidth()){
 					direction = "R";
 					if(map[PlayerTileY][PlayerTileX+1]!=3)
-						player.x = player.x + 64;
+						player.x = player.x + tileDimension;
 				}
 				this.repaint();
 			}
 			
 			if(e.getKeyCode() == KeyEvent.VK_A){
-				if(player.x - 64 > 0){
+				if(player.x - tileDimension > 0){
 					direction = "L";
 					if(map[PlayerTileY][PlayerTileX-1]!=3)
-					player.x = player.x - 64;
+					player.x = player.x - tileDimension;
 				}
 				this.repaint();
 			}
 			
 			if(e.getKeyCode() == KeyEvent.VK_Q){
 				team = (team % 2 ) + 1;
+			}
+			
+			if(e.getKeyCode() == KeyEvent.VK_E){
+				System.out.println(player.dataToString());
+				 try {
+					String decode = new String(player.dataToString(),"UTF-8");
+					System.out.println(decode);
+				} catch (UnsupportedEncodingException e1) {
+					e1.printStackTrace();
+				}
 			}
 		}
 		
@@ -182,8 +217,8 @@ public class GamePanel extends JPanel implements KeyListener, ActionListener{
 		}
 		
 		if(k1.getSource()== refreshrate){
-			PlayerTileX = (player.x) / 64;
-			PlayerTileY = (player.y) / 64;
+			PlayerTileX = (player.x) / tileDimension;
+			PlayerTileY = (player.y) / tileDimension;
 			
 			map[PlayerTileY][PlayerTileX] = team;
 
@@ -194,6 +229,29 @@ public class GamePanel extends JPanel implements KeyListener, ActionListener{
 		}
 		
 		this.repaint();
+		
+	}
+
+	@Override
+	public void run() {
+		// TODO Auto-generated method stub
+
+		while(true){
+			
+			try { 
+//				InetAddress IPAddress = InetAddress.getByName("localhost");
+				byte[] receiveData = new byte[1024];
+
+				DatagramPacket receivePacket = new DatagramPacket(receiveData, receiveData.length);
+
+				clientSocket.receive(receivePacket);
+				
+				convertData(receivePacket.getData());
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
 		
 	}
 

@@ -7,9 +7,25 @@ public class Player extends Rectangle{
 	int speed = 64;
 	int diameter = 32;
 	
-	public Player(int x, int y){
+	public Player(int x, int y, int tileDim){
 		this.x = x;
 		this.y = y;
+		speed = tileDim;
+		diameter = tileDim/2;
+	}
+	
+	public byte[] dataToString(){
+		String data = "";
+		
+		data+= id;
+		data+= x;
+		data+= y;
+		
+		System.out.println(data.length());
+		
+		byte[] data_Byte = data.getBytes();
+		
+		return data_Byte;
 	}
 	
 	public void moveUP(){
