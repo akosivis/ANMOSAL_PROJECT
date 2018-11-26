@@ -39,8 +39,10 @@ public class GamePanel extends JPanel implements KeyListener, ActionListener, Ru
 	boolean movementEnabled = true;
 	
 	int[][] map= new int[10][20];
+	String mapData;
 	
 	byte[] sendData = new byte[1024];
+	
 	DatagramSocket clientSocket = null;
 //	Rectangle[][] collisionRect = new Rectangle[10][10]; 
 	
@@ -48,6 +50,7 @@ public class GamePanel extends JPanel implements KeyListener, ActionListener, Ru
 	
 		try {
 			tiles = ImageIO.read(new File("img/TileSet.png"));
+			
 		} catch (Exception e){
 
 		}
@@ -57,15 +60,15 @@ public class GamePanel extends JPanel implements KeyListener, ActionListener, Ru
 		this.requestFocusInWindow();
 		this.addKeyListener(this);
 		
-		player = new Player( tileDimension/4, tileDimension/4, tileDimension);
+		player = new Player( tileDimension/4, tileDimension/4, tileDimension , 4443, "localhost");
 		
 		try {
-			clientSocket = new DatagramSocket(4443, InetAddress.getByName("localhost"));
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
+			clientSocket = new DatagramSocket(4443, InetAddress.getByName(player.address));
+		} catch (SocketException e) {
+			e.printStackTrace();
+		} catch (UnknownHostException e) {
 			e.printStackTrace();
 		}
-		
 		refreshrate = new Timer (100,this);
 		roundTimer =  new Timer (1000,this);
 		
@@ -75,6 +78,18 @@ public class GamePanel extends JPanel implements KeyListener, ActionListener, Ru
 		
 	}
 	
+	public void convertMapToStringToByte(int[][] map2D){
+		String mapString = "";
+		for(int y = 0; y < map2D.length; y++){
+			for(int x = 0; x < map2D[0].length; x++){
+				mapString = mapString + map2D[y][x];
+			}
+		}
+		
+		sendData = mapString.getBytes();
+		
+		
+	}
 	public void paintComponent(Graphics g){
 		super.paintComponent(g);
 		
@@ -93,7 +108,6 @@ public class GamePanel extends JPanel implements KeyListener, ActionListener, Ru
 				}
 			}
 		}
-		// Draws hitbox for player(s)
 		g.drawRect(player.x, player.y, player.diameter, player.diameter);
 		
 		g.setColor(Color.GRAY);
@@ -239,6 +253,7 @@ public class GamePanel extends JPanel implements KeyListener, ActionListener, Ru
 		while(true){
 			
 			try { 
+				
 //				InetAddress IPAddress = InetAddress.getByName("localhost");
 				byte[] receiveData = new byte[1024];
 
@@ -247,8 +262,13 @@ public class GamePanel extends JPanel implements KeyListener, ActionListener, Ru
 				clientSocket.receive(receivePacket);
 				
 				convertData(receivePacket.getData());
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
+				
+				DatagramPacket sendPacket = new DatagramPacket(sendData, sendData.length, InetAddress.getByName("localhost"), 4444);
+			    clientSocket.send(sendPacket);
+			    clientSocket.close();
+//			    System.out.println("here");
+			} catch(SocketException e1){}
+			catch (IOException e) {
 				e.printStackTrace();
 			}
 		}

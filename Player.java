@@ -4,12 +4,16 @@ public class Player extends Rectangle{
 	int id;
 	int x;
 	int y;
+	int port;
+	String address;
 	int speed = 64;
 	int diameter = 32;
 	
-	public Player(int x, int y, int tileDim){
+	public Player(int x, int y, int tileDim, int port, String addr){
 		this.x = x;
 		this.y = y;
+		this.port = port;
+		this.address = addr;
 		speed = tileDim;
 		diameter = tileDim/2;
 	}
@@ -18,6 +22,8 @@ public class Player extends Rectangle{
 		String data = "";
 		
 		data+= id;
+		data+= port;
+		data+= address;
 		data+= x;
 		data+= y;
 		
