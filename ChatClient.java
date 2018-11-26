@@ -34,6 +34,7 @@ public class ChatClient{
     }
 
     private ConnectPacket getConnectPacket(){
+        //sample player
         Player.Builder player = Player.newBuilder().setName("Mojica");
 
         ConnectPacket.Builder connect = ConnectPacket.newBuilder();
@@ -42,13 +43,13 @@ public class ChatClient{
         return connect.build();
     }
 
-    /*https://stackoverflow.com/questions/1264709/convert-inputstream-to-byte-array-in-java*/
     private void clickCreateLobby(OutputStream output, InputStream input){
         try{
             output.write(getLobbyPacket().toByteArray());
             
             while(input.available() == 0){}
 
+            /*https://stackoverflow.com/questions/1264709/convert-inputstream-to-byte-array-in-java*/
             byte[] response = new byte[input.available()];
             input.read(response);
             CreateLobbyPacket response_parsed = CreateLobbyPacket.parseFrom(response);
