@@ -35,19 +35,41 @@ public class GamePanel extends JPanel implements KeyListener, ActionListener, Ru
 	
 	int PlayerTileX;
 	int PlayerTileY;
+	boolean isClient;
+	boolean movementEnabled;
 	
-	boolean movementEnabled = true;
-	
-	int[][] map= new int[10][20];
+	int[][] map = {{0,3,3,3,3,0,0,0,0,0,0,0,0,0,0,3,3,3,3,0},
+			   {0,3,3,3,3,0,0,0,0,0,0,0,0,0,0,3,3,3,3,0},
+			   {0,3,3,3,3,0,0,0,0,0,0,0,0,0,0,3,3,3,3,0},
+			   {0,0,0,0,0,0,0,0,3,0,0,3,0,0,0,0,0,0,0,0},
+			   {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
+			   {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
+			   {0,0,0,0,0,0,0,0,3,0,0,3,0,0,0,0,0,0,0,0},
+			   {0,3,3,3,3,0,0,0,0,0,0,0,0,0,0,3,3,3,3,0},
+			   {0,3,3,3,3,0,0,0,0,0,0,0,0,0,0,3,3,3,3,0},
+			   {0,3,3,3,3,0,0,0,0,0,0,0,0,0,0,3,3,3,3,0}};;
+		  
 	String mapData;
 	
 	byte[] sendData = new byte[1024];
 	
 	DatagramSocket clientSocket = null;
-//	Rectangle[][] collisionRect = new Rectangle[10][10]; 
+	String addr;
+	int port;
 	
-	public GamePanel(){
+	//gamePanel with Parameters from Main
+	public GamePanel(int numOfPlayers, int id, int port, int addr){
+		
+	}
 	
+	public GamePanel(String addr, int port, boolean isClient){
+		this.addr = addr;
+		this.port = port;
+		this.isClient = isClient;
+		
+		if(isClient== true) {
+			map = new int[10][20];
+		}
 		try {
 			tiles = ImageIO.read(new File("img/TileSet.png"));
 			
@@ -60,16 +82,23 @@ public class GamePanel extends JPanel implements KeyListener, ActionListener, Ru
 		this.requestFocusInWindow();
 		this.addKeyListener(this);
 		
-		player = new Player( tileDimension/4, tileDimension/4, tileDimension , 4443, "localhost");
 		
 		try {
-			clientSocket = new DatagramSocket(4443, InetAddress.getByName(player.address));
-		} catch (SocketException e) {
-			e.printStackTrace();
+			if(isClient == true)
+				player = new Player( tileDimension/4, tileDimension/4, tileDimension , port, InetAddress.getLocalHost(),1);
+			else
+				player = new Player( tileDimension/4, tileDimension/4, tileDimension , port, InetAddress.getLocalHost(),0);
+			
+			movementEnabled = player.movementEnabled;
+			clientSocket = new DatagramSocket(player.port, player.address);
+//			System.out.println(InetAddress.getLocalHost());
 		} catch (UnknownHostException e) {
 			e.printStackTrace();
+		} catch (SocketException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
-		refreshrate = new Timer (100,this);
+		refreshrate = new Timer (10,this);
 		roundTimer =  new Timer (1000,this);
 		
 		roundTimer.start();
@@ -78,6 +107,16 @@ public class GamePanel extends JPanel implements KeyListener, ActionListener, Ru
 		
 	}
 	
+	public String convertMapToString(int[][] map2D){
+		String mapString = "";
+		for(int y = 0; y < map2D.length; y++){
+			for(int x = 0; x < map2D[0].length; x++){
+				mapString = mapString + map2D[y][x];
+			}
+		}
+		
+		return mapString;
+	}
 	public void convertMapToStringToByte(int[][] map2D){
 		String mapString = "";
 		for(int y = 0; y < map2D.length; y++){
@@ -86,9 +125,9 @@ public class GamePanel extends JPanel implements KeyListener, ActionListener, Ru
 			}
 		}
 		
-		sendData = mapString.getBytes();
-		
-		
+		String fullData = player.dataToString() + mapString;
+		sendData = fullData.getBytes();
+//		System.out.println("updating map...");
 	}
 	public void paintComponent(Graphics g){
 		super.paintComponent(g);
@@ -132,6 +171,8 @@ public class GamePanel extends JPanel implements KeyListener, ActionListener, Ru
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+		System.out.println("-----------------");
+		System.out.println(convertMapToString(map));
 	}
 	
 	public void showScore(Graphics g, int red, int blue){
@@ -199,9 +240,8 @@ public class GamePanel extends JPanel implements KeyListener, ActionListener, Ru
 			}
 			
 			if(e.getKeyCode() == KeyEvent.VK_E){
-				System.out.println(player.dataToString());
 				 try {
-					String decode = new String(player.dataToString(),"UTF-8");
+					String decode = new String(sendData,"UTF-8");
 					System.out.println(decode);
 				} catch (UnsupportedEncodingException e1) {
 					e1.printStackTrace();
@@ -253,19 +293,19 @@ public class GamePanel extends JPanel implements KeyListener, ActionListener, Ru
 		while(true){
 			
 			try { 
-				
+
 //				InetAddress IPAddress = InetAddress.getByName("localhost");
 				byte[] receiveData = new byte[1024];
-
+				
 				DatagramPacket receivePacket = new DatagramPacket(receiveData, receiveData.length);
 
+				convertMapToStringToByte(map);
+				DatagramPacket sendPacket = new DatagramPacket(sendData, sendData.length, InetAddress.getByName(addr), 4444);
+				clientSocket.send(sendPacket);
 				clientSocket.receive(receivePacket);
-				
 				convertData(receivePacket.getData());
 				
-				DatagramPacket sendPacket = new DatagramPacket(sendData, sendData.length, InetAddress.getByName("localhost"), 4444);
-			    clientSocket.send(sendPacket);
-			    clientSocket.close();
+//			    clientSocket.close();
 //			    System.out.println("here");
 			} catch(SocketException e1){}
 			catch (IOException e) {

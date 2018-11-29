@@ -2,6 +2,7 @@ import java.awt.Dimension;
 import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.net.UnknownHostException;
 
 import javax.swing.JButton;
 import javax.swing.JFrame;
@@ -10,9 +11,11 @@ import javax.swing.JTextField;
 
 public class MainPanel extends JFrame implements ActionListener{
 	
-	private JTextField portText = new JTextField("1");
+	private JTextField portText = new JTextField("4443");
 	private JTextField udpText = new JTextField("2");
-	private JTextField playersText = new JTextField();
+	private JTextField hostText = new JTextField("192.168.10.189");
+	private JTextField playersText = new JTextField("2");
+	private JLabel hostLabel = new JLabel("Host Address (for client):");
 	private JLabel portLabel = new JLabel("Port:");
 	private JLabel playersLabel = new JLabel("Num of Players:");
 	private JButton serverButton = new JButton("Start as Server");
@@ -23,7 +26,9 @@ public class MainPanel extends JFrame implements ActionListener{
 		serverButton.addActionListener(this);
 		clientButton.addActionListener(this);
 		
-		this.setLayout(new GridLayout(3,2));
+		this.setLayout(new GridLayout(4,2));
+		this.add(hostLabel);
+		this.add(hostText);
 		this.add(portLabel);
 		this.add(portText);
 		this.add(playersLabel);
@@ -53,13 +58,28 @@ public class MainPanel extends JFrame implements ActionListener{
 			int port = Integer.parseInt(portText.getText());
 			int players = Integer.parseInt(playersText.getText());
 			
-			MainPanelServer mpserver =  new MainPanelServer();
+			try {
+				MainPanelServer mpserver =  new MainPanelServer(players, port);
+			} catch (UnknownHostException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 			
 			this.dispose();
 		}
 		
 		if(b.getSource()==clientButton){
+			int port = Integer.parseInt(portText.getText());
+			String addr = hostText.getText();
 			
+			try {
+				MainPanelClient mpclient =  new MainPanelClient(addr, port);
+			} catch (Exception e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			
+			this.dispose();
 		}
 		
 	}

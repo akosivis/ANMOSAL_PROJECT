@@ -1,33 +1,56 @@
 import java.awt.Rectangle;
+import java.net.InetAddress;
 
 public class Player extends Rectangle{
-	int id;
-	int x;
-	int y;
-	int port;
-	String address;
-	int speed = 64;
-	int diameter = 32;
+	int id; int speed = 64; int diameter = 32;
+	int x; int y;
 	
-	public Player(int x, int y, int tileDim, int port, String addr){
+	int port;
+	int isClient;
+	InetAddress address;
+	
+	boolean movementEnabled = true;
+	
+	
+	
+	
+	public Player(int x, int y, int tileDim, int port, InetAddress addr, int client){
 		this.x = x;
 		this.y = y;
 		this.port = port;
 		this.address = addr;
+		this.isClient = client;
 		speed = tileDim;
 		diameter = tileDim/2;
 	}
 	
-	public byte[] dataToString(){
+	public String dataToString() {
 		String data = "";
 		
+		data+= isClient;
 		data+= id;
-		data+= port;
-		data+= address;
-		data+= x;
-		data+= y;
+//		data+= port;
+//		data+= address;
+		
+		if(x<10)
+			data+= "00"+x;
+		else if(x<100)
+			data+= "0"+ x;
+		else
+			data+= x;
+		
+		if(y<10)
+			data+= "00"+y;
+		else if(y<100)
+			data+= "0"+ y;
+		else
+			data+= y;
 		
 		System.out.println(data.length());
+		return data;
+	}
+	public byte[] dataToByte(){
+		String data = this.dataToString();
 		
 		byte[] data_Byte = data.getBytes();
 		
