@@ -37,7 +37,10 @@ public class GamePanel extends JPanel implements KeyListener, ActionListener, Ru
 	int PlayerTileY;
 	boolean isClient;
 	boolean movementEnabled;
-	
+
+	/* for chat */
+	String lobbyId = null;
+
 	int[][] map = {{0,3,3,3,3,0,0,0,0,0,0,0,0,0,0,3,3,3,3,0},
 			   {0,3,3,3,3,0,0,0,0,0,0,0,0,0,0,3,3,3,3,0},
 			   {0,3,3,3,3,0,0,0,0,0,0,0,0,0,0,3,3,3,3,0},
@@ -66,7 +69,7 @@ public class GamePanel extends JPanel implements KeyListener, ActionListener, Ru
 		this.addr = addr;
 		this.port = port;
 		this.isClient = isClient;
-		
+	
 		if(isClient== true) {
 			map = new int[10][20];
 		}
@@ -315,4 +318,16 @@ public class GamePanel extends JPanel implements KeyListener, ActionListener, Ru
 		
 	}
 
+	/* for chat */
+	public String getLobbyId(){
+		return this.lobbyId;
+	}
+
+	public void setLobbyId(String lobbyId){
+		this.lobbyId = lobbyId;
+	}
+
+	public Player getPlayer(){
+		return this.player;
+	}
 }

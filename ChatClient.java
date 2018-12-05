@@ -16,7 +16,16 @@ public class ChatClient{
     private static Player player;
     private static Scanner sc = new Scanner(System.in);
 
+    public ChatClient(){
+
+    }
+
+    public ChatClient(Player player){
+        this.player = player;
+    }
+
     private Socket openConnection(String server, int port){
+        /* create socket */
         Socket socket = null;
         try{
             socket = new Socket(server, port);
@@ -27,8 +36,9 @@ public class ChatClient{
 
         return socket;
     }
-
+        
     private CreateLobbyPacket makeLobbyPacket(){   
+        /* create a CreateLobbyPacket */
         System.out.print("Max no. of players: ");
         int max = this.sc.nextInt();
 
@@ -39,6 +49,8 @@ public class ChatClient{
     }
 
     private ConnectPacket makeConnectPacket(){
+        /* create ConnectPacket */
+
         //sample player
         Player.Builder player = Player.newBuilder().setName("Mojica");
         player.build();
@@ -52,64 +64,97 @@ public class ChatClient{
     }
 
     private ChatPacket makeChatPacket(){
+        /* creates ChatPacket */
         ChatPacket.Builder chat = ChatPacket.newBuilder();
         chat.setType(PacketType.CHAT).setPlayer(player).setLobbyId(this.lobbyId);
 
         String message = this.sc.nextLine();
-
         chat.setMessage(message);
 
         return chat.build();
     }
 
     private DisconnectPacket makeDisconnectPacket(){
+        /* create DisconnectPacket */
         DisconnectPacket.Builder dc = DisconnectPacket.newBuilder();
-        dc.setType(PacketType.DISCONNECT).setPlayer(this.player);
+        dc.setType(PacketType.DISCONNECT).setPlayer(player);
 
         return dc.build();
     }
 
-    /*private PlayerListPacket makePlayerListPacket(){
-        
-    }*/
+    private void errorChecker(String exp_string, TcpPacket rp, byte[] toBeParsed) throws IOException{
+        /* helper for error messages and other actions */
+
+        if(rp.getType() == TcpPacket.PacketType.DISCONNECT){
+            /*disconnect mo bez*/
+        }else if(rp.getType() == TcpPacket.PacketType.CREATE_LOBBY){
+            /*create lobby daw e*/
+        }else if(rp.getType() == TcpPacket.PacketType.CONNECT){
+            /*yaan mo siya*/
+        }else if(rp.getType() == TcpPacket.PacketType.CHAT){
+            System.out.println("ERROR: Received ChatPacket. Expecting " + exp_string);
+        }else if(rp.getType() == TcpPacket.PacketType.PLAYER_LIST){
+            System.out.println("ERROR: Received PlayerListPacket. Expecting " + exp_string);
+        }else if(rp.getType() == TcpPacket.PacketType.ERR_LDNE){
+            ErrLdnePacket err_dne = ErrLdnePacket.parseFrom(toBeParsed);
+            System.out.println("ERROR: " + err_dne.getErrMessage());
+        }else if(rp.getType() == TcpPacket.PacketType.ERR_LFULL){
+            ErrLfullPacket err_full = ErrLfullPacket.parseFrom(toBeParsed);
+            System.out.println("ERROR: " + err_full.getErrMessage());
+        }else if(rp.getType() == TcpPacket.PacketType.ERR){
+            ErrPacket err = ErrPacket.parseFrom(toBeParsed);
+            System.out.println("ERROR: " + err.getErrMessage());
+        }
+    }
 
     private void clickCreateLobby(OutputStream output, InputStream input){
+        /* actions when create lobby button is invoked */
         try{
             output.write(makeLobbyPacket().toByteArray());
             
             while(input.available() == 0){}
 
             /*https://stackoverflow.com/questions/1264709/convert-inputstream-to-byte-array-in-java*/
-            byte[] response = new byte[input.available()];
-            input.read(response);
-            CreateLobbyPacket response_parsed = CreateLobbyPacket.parseFrom(response);
+            byte[] toParse = new byte[input.available()];
+            input.read(toParse);
+            TcpPacket rp = TcpPacket.parseFrom(toParse);
+            
+            if(rp.getType() == TcpPacket.PacketType.CREATE_LOBBY){
+                CreateLobbyPacket suc_res = CreateLobbyPacket.parseFrom(toParse);
+                String lobbyId = suc_res.getLobbyId();
+                this.lobbyId = lobbyId;
+                System.out.println("Lobby " + this.lobbyId + " created.");
+                /* send mo sa game na meron na pong lobby. */
+            }
+            else errorChecker("CreateLobbyPacket", rp, toParse);
 
-            String lobbyId = response_parsed.getLobbyId();
-            this.lobbyId = lobbyId;
-
-            System.out.println("Lobby " + this.lobbyId + " created.");
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
     private void clickConnectToLobby(OutputStream output, InputStream input){
+        /* actions when connect to lobby button is invoked */
         try{
             output.write(makeConnectPacket().toByteArray());
 
             while(input.available() == 0) {}
 
-            byte[] response = new byte[input.available()];
-            input.read(response);
-            ConnectPacket response_parsed = ConnectPacket.parseFrom(response);
+            byte[] toParse = new byte[input.available()];
+            input.read(toParse);
+            TcpPacket rp = TcpPacket.parseFrom(toParse);
 
-            System.out.println("Connected to " + this.lobbyId + " lobby.");
+            if(rp.getType() == TcpPacket.PacketType.CONNECT){
+                ConnectPacket suc_res = ConnectPacket.parseFrom(toParse);
+                System.out.println("Connected to " + this.lobbyId + "\n");
+            }else errorChecker("ConnectPacket", rp, toParse);
         } catch (Exception e){
             e.printStackTrace();
         }
     }
 
     private void receiveChat(OutputStream output, InputStream input){
+        /* receiving chat */
         try{
             Timer timer = new Timer();
 
@@ -125,10 +170,15 @@ public class ChatClient{
             }, 2*60*1000);
             
             if(input.available() != 0){
-                byte[] receive = new byte[input.available()];
-                input.read(receive);
-                ChatPacket receive_parsed = ChatPacket.parseFrom(receive);
-                System.out.println(receive_parsed.getPlayer().getName() + ": " + receive_parsed.getMessage());
+                byte[] toParse = new byte[input.available()];
+                input.read(toParse);
+
+                TcpPacket rp = TcpPacket.parseFrom(toParse);
+                if(rp.getType() == TcpPacket.PacketType.CHAT){
+                    ChatPacket suc_res = ChatPacket.parseFrom(toParse);
+                    System.out.println(suc_res.getPlayer().getName() + ": " + suc_res.getMessage());
+                }
+                else errorChecker("ChatPacket", rp, toParse);
             }
         }catch(Exception e){
             e.printStackTrace();
@@ -136,13 +186,57 @@ public class ChatClient{
     }
 
     private void sendChat(OutputStream output, InputStream input){
+        /* to send chat */
         try{
             output.write(makeChatPacket().toByteArray());
         } catch(Exception e){
             e.printStackTrace();
         }
     }
-    
+
+    private void clickDisconnect(OutputStream output, InputStream input){
+        /* to disconnect */
+        try{
+            output.write(makeDisconnectPacket().toByteArray());
+
+            while(input.available() == 0){}
+
+            byte[] toParse = new byte[input.available()];
+            input.read(toParse);
+            TcpPacket rp = TcpPacket.parseFrom(toParse);
+
+            if(rp.getType() == TcpPacket.PacketType.DISCONNECT){
+                DisconnectPacket suc_res = DisconnectPacket.parseFrom(toParse);
+                System.out.println(suc_res);
+                this.isConnected = false;
+            }else errorChecker("DisconnectPacket", rp, toParse);
+        }catch(Exception e){
+            e.printStackTrace();
+        }
+    }
+
+    private void getPlayerList(OutputStream output, InputStream input){
+        try{
+            PlayerListPacket.Builder list = PlayerListPacket.newBuilder();
+            list.setType(PacketType.PLAYER_LIST).getPlayerListList();
+
+            output.write(list.build().toByteArray());
+
+            while(input.available() == 0){}
+
+            byte[] toParse = new byte[input.available()];
+            input.read(toParse);
+            TcpPacket rp = TcpPacket.parseFrom(toParse);
+
+            if(rp.getType() == TcpPacket.PacketType.PLAYER_LIST){
+                PlayerListPacket suc_res = PlayerListPacket.parseFrom(toParse);
+                System.out.println(suc_res);
+            }else errorChecker("PlayerListPacket", rp, toParse);
+        }catch (Exception e){
+            e.printStackTrace();
+        }
+    }
+
     public static void main(String args[]){
         try{
             ChatClient client = new ChatClient();
@@ -152,7 +246,7 @@ public class ChatClient{
             OutputStream output = socket.getOutputStream();
             InputStream input = socket.getInputStream();
 
-            //client.clickCreateLobby(output, input);
+            client.clickCreateLobby(output, input);
             client.clickConnectToLobby(output, input);
 
             while(client.isConnected){
@@ -162,6 +256,8 @@ public class ChatClient{
                 }
                 client.receiveChat(output,input);
             }
+
+            //client.clickDisconnect(output, input);
 
             output.close();
             input.close();
