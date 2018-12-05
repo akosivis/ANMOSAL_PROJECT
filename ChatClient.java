@@ -28,7 +28,7 @@ public class ChatClient{
         return socket;
     }
 
-    private CreateLobbyPacket getLobbyPacket(){   
+    private CreateLobbyPacket makeLobbyPacket(){   
         System.out.print("Max no. of players: ");
         int max = this.sc.nextInt();
 
@@ -38,7 +38,7 @@ public class ChatClient{
         return create.build();
     }
 
-    private ConnectPacket getConnectPacket(){
+    private ConnectPacket makeConnectPacket(){
         //sample player
         Player.Builder player = Player.newBuilder().setName("Mojica");
         player.build();
@@ -51,7 +51,7 @@ public class ChatClient{
         return connect.build();
     }
 
-    private ChatPacket getChatPacket(){
+    private ChatPacket makeChatPacket(){
         ChatPacket.Builder chat = ChatPacket.newBuilder();
         chat.setType(PacketType.CHAT).setPlayer(player).setLobbyId(this.lobbyId);
 
@@ -62,9 +62,20 @@ public class ChatClient{
         return chat.build();
     }
 
+    private DisconnectPacket makeDisconnectPacket(){
+        DisconnectPacket.Builder dc = DisconnectPacket.newBuilder();
+        dc.setType(PacketType.DISCONNECT).setPlayer(this.player);
+
+        return dc.build();
+    }
+
+    /*private PlayerListPacket makePlayerListPacket(){
+        
+    }*/
+
     private void clickCreateLobby(OutputStream output, InputStream input){
         try{
-            output.write(getLobbyPacket().toByteArray());
+            output.write(makeLobbyPacket().toByteArray());
             
             while(input.available() == 0){}
 
@@ -84,7 +95,7 @@ public class ChatClient{
 
     private void clickConnectToLobby(OutputStream output, InputStream input){
         try{
-            output.write(getConnectPacket().toByteArray());
+            output.write(makeConnectPacket().toByteArray());
 
             while(input.available() == 0) {}
 
@@ -117,7 +128,7 @@ public class ChatClient{
                 byte[] receive = new byte[input.available()];
                 input.read(receive);
                 ChatPacket receive_parsed = ChatPacket.parseFrom(receive);
-                System.out.println(receive_parsed.getMessage());
+                System.out.println(receive_parsed.getPlayer().getName() + ": " + receive_parsed.getMessage());
             }
         }catch(Exception e){
             e.printStackTrace();
@@ -126,7 +137,7 @@ public class ChatClient{
 
     private void sendChat(OutputStream output, InputStream input){
         try{
-            output.write(getChatPacket().toByteArray());
+            output.write(makeChatPacket().toByteArray());
         } catch(Exception e){
             e.printStackTrace();
         }
@@ -145,11 +156,10 @@ public class ChatClient{
             client.clickConnectToLobby(output, input);
 
             while(client.isConnected){
-                System.out.print("Your Message:");
+                System.out.print(client.player.getName() + ": ");
                 if(client.sc.hasNext()){
                     client.sendChat(output, input);
                 }
-                System.out.print("Received Message: ");
                 client.receiveChat(output,input);
             }
 
