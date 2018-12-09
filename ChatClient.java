@@ -21,7 +21,6 @@ public class ChatClient{
     private static String lobbyId = "AB1L";
     private static Player player;
     private static Scanner sc = new Scanner(System.in);
-    private int max;
     private int allowedLobby = 0;
 
 
@@ -55,66 +54,12 @@ public class ChatClient{
         return socket;
     }
         
-    private CreateLobbyPacket makeLobbyPacket(){  
 
+    private CreateLobbyPacket makeLobbyPacket(int max){  
         /* create a CreateLobbyPacket */
-        
-        /* UI of Lobby! */ 
-        // ========================================================
-        // main frame
-        frameLobby = new JFrame("Conquer");
-        frameLobby.setPreferredSize(new Dimension(300, 250));
-        frameLobby.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        //--------2nd panel
-        textLabel = new JLabel("Max no. of players: ");
-        textLabel.setHorizontalAlignment(JLabel.CENTER);
-        textLabel.setVerticalAlignment(JLabel.CENTER);  
-        textLabel.setPreferredSize(new Dimension(300, 50)); 
-        panelText = new JPanel();
-        panelText.setPreferredSize(new Dimension(300, 50));
-        panelText.add(textLabel);
-        //--------3rd panel
-        fieldNoOfPlayers = new JTextField("", 15);
-        fieldNoOfPlayers.setFont(new Font("Lato Medium", Font.PLAIN, 15));
-        panelTextBox = new JPanel();
-        panelTextBox.setPreferredSize(new Dimension(300, 50));
-        panelTextBox.add(fieldNoOfPlayers);
-        //--------4th panel
-        //button
-        enterButton = new JButton("Enter");
-        enterButton.setPreferredSize(new Dimension(200, 50));
-        panelButton = new JPanel();
-        panelButton.setPreferredSize(new Dimension(300, 50));   
-        panelButton.add(enterButton);
 
-        // adds the panels in frame
-        frameLobby.add(panelText);
-        frameLobby.add(panelTextBox);
-        frameLobby.add(panelButton);
-        frameLobby.setLayout(new FlowLayout());
-        frameLobby.setLocationRelativeTo(null);
-        frameLobby.pack();
-
-        enterButton.addActionListener(new ActionListener(){
-            public void actionPerformed(ActionEvent e) {
-                
-                if (fieldNoOfPlayers.getText().equals("")) {
-                    JOptionPane.showMessageDialog(null, "Please write some text!");
-                } else  {
-                    String text = fieldNoOfPlayers.getText();
-                    max = Integer.parseInt(text);
-
-                    allowedLobby += 1;
-                }
-            }
-        });
-
-        frameLobby.setVisible(true);
         CreateLobbyPacket.Builder create = CreateLobbyPacket.newBuilder();
-        
-        if (allowedLobby != 0){
-            create.setType(PacketType.CREATE_LOBBY).setMaxPlayers(max);
-        } 
+        create.setType(PacketType.CREATE_LOBBY).setMaxPlayers(max);
         
         return create.build();
     }
@@ -178,31 +123,92 @@ public class ChatClient{
         }
     }
 
-    private void clickCreateLobby(OutputStream output, InputStream input){
-        /* actions when create lobby button is invoked */
+    private void clickCreateLobby(OutputStream output, InputStream input, int max){
+        
         try{
-            output.write(makeLobbyPacket().toByteArray());
-            
+            output.write(makeLobbyPacket(max).toByteArray());
+                
             while(input.available() == 0){}
 
             /*https://stackoverflow.com/questions/1264709/convert-inputstream-to-byte-array-in-java*/
             byte[] toParse = new byte[input.available()];
             input.read(toParse);
             TcpPacket rp = TcpPacket.parseFrom(toParse);
-            
+                
             if(rp.getType() == TcpPacket.PacketType.CREATE_LOBBY){
                 CreateLobbyPacket suc_res = CreateLobbyPacket.parseFrom(toParse);
                 String lobbyId = suc_res.getLobbyId();
                 this.lobbyId = lobbyId;
                 System.out.println("Lobby " + this.lobbyId + " created.");
                 /* send mo sa game na meron na pong lobby. */
-            }
-            else errorChecker("CreateLobbyPacket", rp, toParse);
-
+            } else errorChecker("CreateLobbyPacket", rp, toParse);
         } catch (Exception e) {
             e.printStackTrace();
         }
+         
     }
+
+    private void clickCreateLobbyUI(ChatClient client, OutputStream output, InputStream input) {
+
+        /* actions when create lobby button is invoked */
+        /* UI */
+        /* UI of Lobby! */ 
+        // ========================================================
+        // main frame
+        frameLobby = new JFrame("Conquer");
+        frameLobby.setPreferredSize(new Dimension(300, 250));
+        frameLobby.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        //--------2nd panel
+        textLabel = new JLabel("Max no. of players: ");
+        textLabel.setHorizontalAlignment(JLabel.CENTER);
+        textLabel.setVerticalAlignment(JLabel.CENTER);  
+        textLabel.setPreferredSize(new Dimension(300, 50)); 
+        panelText = new JPanel();
+        panelText.setPreferredSize(new Dimension(300, 50));
+        panelText.add(textLabel);
+        //--------3rd panel
+        fieldNoOfPlayers = new JTextField("", 15);
+        fieldNoOfPlayers.setFont(new Font("Lato Medium", Font.PLAIN, 15));
+        panelTextBox = new JPanel();
+        panelTextBox.setPreferredSize(new Dimension(300, 50));
+        panelTextBox.add(fieldNoOfPlayers);
+        //--------4th panel
+        //button
+        enterButton = new JButton("Enter");
+        enterButton.setPreferredSize(new Dimension(200, 50));
+        enterButton.addActionListener(new ActionListener(){
+            public void actionPerformed(ActionEvent e) {
+                
+                if (fieldNoOfPlayers.getText().equals("")) {
+                    JOptionPane.showMessageDialog(null, "Please write some text!");
+                } else  {
+                    String text = fieldNoOfPlayers.getText();
+                    int max = Integer.parseInt(text);
+                    //allowedLobby += 1;
+                    client.clickCreateLobby(output, input, max);
+                }
+            }
+        });
+
+        panelButton = new JPanel();
+        panelButton.setPreferredSize(new Dimension(300, 50));   
+        panelButton.add(enterButton);
+
+        // adds the panels in frame
+        frameLobby.add(panelText);
+        frameLobby.add(panelTextBox);
+        frameLobby.add(panelButton);
+        frameLobby.setLayout(new FlowLayout());
+        frameLobby.setLocationRelativeTo(null);
+        frameLobby.pack();
+        
+        frameLobby.setVisible(true);
+    }
+
+    private void clickConnectToLobbyUI(ChatClient client, OutputStream output, InputStream input){
+            
+    }
+
 
     private void clickConnectToLobby(OutputStream output, InputStream input){
         /* actions when connect to lobby button is invoked */
@@ -317,8 +323,14 @@ public class ChatClient{
             OutputStream output = socket.getOutputStream();
             InputStream input = socket.getInputStream();
 
-            client.clickCreateLobby(output, input);
-            client.clickConnectToLobby(output, input);
+            //client.clickCreateLobby(output, input);
+            // pass client, output, input to UIfunction
+            client.clickCreateLobbyUI(client, output, input);
+
+            /**/
+            //client.clickConnectToLobby(output, input);
+            //pass client, output, input
+            //client.clickConnectToLobby(client, output, input);
 
             while(client.isConnected){
                 System.out.print(client.player.getName() + ": ");
@@ -333,6 +345,8 @@ public class ChatClient{
             output.close();
             input.close();
             socket.close();
+
+
         }catch(IOException e){
             e.printStackTrace();
         }
