@@ -8,6 +8,12 @@ import java.util.Scanner;
 import java.util.Timer;
 import java.util.TimerTask;
 
+/****/
+import javax.swing.*;
+import java.awt.*;
+import java.awt.event.ActionListener;
+import java.awt.event.ActionEvent;
+
 public class ChatClient{
     private final static String server_ip = "202.92.144.45";
     private final static int port = 80;
@@ -15,6 +21,18 @@ public class ChatClient{
     private static String lobbyId = "AB1L";
     private static Player player;
     private static Scanner sc = new Scanner(System.in);
+    private int max;
+    private int allowedLobby = 0;
+
+
+    /* UI Lobby */
+    private JPanel panelText;
+    private JPanel panelTextBox;
+    private JPanel panelButton;
+    private JFrame frameLobby;
+    private JLabel textLabel;
+    private JTextField fieldNoOfPlayers;
+    private JButton enterButton;
 
     public ChatClient(){
 
@@ -37,14 +55,67 @@ public class ChatClient{
         return socket;
     }
         
-    private CreateLobbyPacket makeLobbyPacket(){   
+    private CreateLobbyPacket makeLobbyPacket(){  
+
         /* create a CreateLobbyPacket */
-        System.out.print("Max no. of players: ");
-        int max = this.sc.nextInt();
+        
+        /* UI of Lobby! */ 
+        // ========================================================
+        // main frame
+        frameLobby = new JFrame("Conquer");
+        frameLobby.setPreferredSize(new Dimension(300, 250));
+        frameLobby.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        //--------2nd panel
+        textLabel = new JLabel("Max no. of players: ");
+        textLabel.setHorizontalAlignment(JLabel.CENTER);
+        textLabel.setVerticalAlignment(JLabel.CENTER);  
+        textLabel.setPreferredSize(new Dimension(300, 50)); 
+        panelText = new JPanel();
+        panelText.setPreferredSize(new Dimension(300, 50));
+        panelText.add(textLabel);
+        //--------3rd panel
+        fieldNoOfPlayers = new JTextField("", 15);
+        fieldNoOfPlayers.setFont(new Font("Lato Medium", Font.PLAIN, 15));
+        panelTextBox = new JPanel();
+        panelTextBox.setPreferredSize(new Dimension(300, 50));
+        panelTextBox.add(fieldNoOfPlayers);
+        //--------4th panel
+        //button
+        enterButton = new JButton("Enter");
+        enterButton.setPreferredSize(new Dimension(200, 50));
+        panelButton = new JPanel();
+        panelButton.setPreferredSize(new Dimension(300, 50));   
+        panelButton.add(enterButton);
 
+        // adds the panels in frame
+        frameLobby.add(panelText);
+        frameLobby.add(panelTextBox);
+        frameLobby.add(panelButton);
+        frameLobby.setLayout(new FlowLayout());
+        frameLobby.setLocationRelativeTo(null);
+        frameLobby.pack();
+
+        enterButton.addActionListener(new ActionListener(){
+            public void actionPerformed(ActionEvent e) {
+                
+                if (fieldNoOfPlayers.getText().equals("")) {
+                    JOptionPane.showMessageDialog(null, "Please write some text!");
+                } else  {
+                    String text = fieldNoOfPlayers.getText();
+                    max = Integer.parseInt(text);
+
+                    allowedLobby += 1;
+                }
+            }
+        });
+
+        frameLobby.setVisible(true);
         CreateLobbyPacket.Builder create = CreateLobbyPacket.newBuilder();
-        create.setType(PacketType.CREATE_LOBBY).setMaxPlayers(max);
-
+        
+        if (allowedLobby != 0){
+            create.setType(PacketType.CREATE_LOBBY).setMaxPlayers(max);
+        } 
+        
         return create.build();
     }
 
