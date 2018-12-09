@@ -23,18 +23,24 @@ import javax.swing.Timer;
 public class GamePanel extends JPanel implements KeyListener, ActionListener, Runnable{
 
 	Player player;
+	Player[] otherPlayers;
+	int plyDataLength=0;
 	Timer refreshrate;
 	Timer roundTimer;
 	
 	BufferedImage tiles;
+	
 	String direction = "NONE";
 	
+	int maxPlayers = 0;
+	int gameStatus = 0;
 	int team = 1;
-	int timer = 30;
+	int timer = 100;
 	int tileDimension = 32;
-	
+	int connectedPlayers = 1;
 	int PlayerTileX;
 	int PlayerTileY;
+	int tCenter; 	// tile Center
 	boolean isClient;
 	boolean movementEnabled;
 	
@@ -55,6 +61,10 @@ public class GamePanel extends JPanel implements KeyListener, ActionListener, Ru
 	
 	DatagramSocket clientSocket = null;
 	String addr;
+	
+	DatagramPacket receivePacket; 
+	DatagramPacket sendPacket;
+	
 	int port;
 	
 	//gamePanel with Parameters from Main
@@ -62,14 +72,17 @@ public class GamePanel extends JPanel implements KeyListener, ActionListener, Ru
 		
 	}
 	
-	public GamePanel(String addr, int port, boolean isClient){
+	public GamePanel(String name, String addr, int port, int numPlayers, boolean isClient, int team){
+		
+		this.maxPlayers = numPlayers;
 		this.addr = addr;
 		this.port = port;
+		this.team = team;
 		this.isClient = isClient;
 		
-		if(isClient== true) {
-			map = new int[10][20];
-		}
+		tCenter = (tileDimension/4);
+		otherPlayers = new Player[numPlayers-1];
+		
 		try {
 			tiles = ImageIO.read(new File("img/TileSet.png"));
 			
@@ -82,14 +95,21 @@ public class GamePanel extends JPanel implements KeyListener, ActionListener, Ru
 		this.requestFocusInWindow();
 		this.addKeyListener(this);
 		
+		for(int i=0;i<numPlayers-1; i++) {
+			otherPlayers[i] = new Player("???", 999, 999, tileDimension, 0);
+		}
 		
 		try {
 			if(isClient == true)
-				player = new Player( tileDimension/4, tileDimension/4, tileDimension , port, InetAddress.getLocalHost(),1);
+				player = new Player( name, tCenter, tCenter, tileDimension , port, InetAddress.getLocalHost(),1, team);
 			else
-				player = new Player( tileDimension/4, tileDimension/4, tileDimension , port, InetAddress.getLocalHost(),0);
+				player = new Player( name, tCenter + (tileDimension*9), tCenter, tileDimension , port, InetAddress.getLocalHost(),0, team);
 			
+			plyDataLength = player.dataToString().length();
 			movementEnabled = player.movementEnabled;
+			
+			byte[] receiveData = new byte[1024];
+			receivePacket = new DatagramPacket(receiveData, receiveData.length);
 			clientSocket = new DatagramSocket(player.port, player.address);
 //			System.out.println(InetAddress.getLocalHost());
 		} catch (UnknownHostException e) {
@@ -101,7 +121,7 @@ public class GamePanel extends JPanel implements KeyListener, ActionListener, Ru
 		refreshrate = new Timer (10,this);
 		roundTimer =  new Timer (1000,this);
 		
-		roundTimer.start();
+//		roundTimer.start();
 		refreshrate.start();
 		
 		
@@ -117,18 +137,7 @@ public class GamePanel extends JPanel implements KeyListener, ActionListener, Ru
 		
 		return mapString;
 	}
-	public void convertMapToStringToByte(int[][] map2D){
-		String mapString = "";
-		for(int y = 0; y < map2D.length; y++){
-			for(int x = 0; x < map2D[0].length; x++){
-				mapString = mapString + map2D[y][x];
-			}
-		}
-		
-		String fullData = player.dataToString() + mapString;
-		sendData = fullData.getBytes();
-//		System.out.println("updating map...");
-	}
+
 	public void paintComponent(Graphics g){
 		super.paintComponent(g);
 		
@@ -147,6 +156,10 @@ public class GamePanel extends JPanel implements KeyListener, ActionListener, Ru
 				}
 			}
 		}
+		
+		for(int i = 0; i < otherPlayers.length;i++) {
+			g.drawRect(otherPlayers[i].x, otherPlayers[i].y, otherPlayers[i].diameter, otherPlayers[i].diameter);
+		}
 		g.drawRect(player.x, player.y, player.diameter, player.diameter);
 		
 		g.setColor(Color.GRAY);
@@ -156,23 +169,55 @@ public class GamePanel extends JPanel implements KeyListener, ActionListener, Ru
 			showScore(g, redCount,blueCount);
 		}
 	}
+	
+	
 	public void convertData(byte[] received){
 		try {
 			String rcvData = new String(received,"UTF-8");
 //			System.out.println(rcvData);
-			// Updates the map
-			for(int mapy = 0; mapy < map.length; mapy++){
-//				System.out.println(rcvData.substring(,mapy * map.length + map[0].length));	
-				for(int mapx = 0; mapx < map[0].length; mapx++){
-					map[mapy][mapx] = Integer.parseInt(rcvData.substring((mapy * map[0].length) + mapx, (mapy * map[0].length) + mapx+1));
+
+			gameStatus = Integer.parseInt(rcvData.substring(0,1));
+			
+			for(int p = 0; p < maxPlayers; p++){
+				int start = (p*plyDataLength) + p+2;
+				int end   = start + plyDataLength;
+				
+				if(rcvData.substring(start,start+3).equals(player.name)== true) {
+					continue;
+				}else {
+					for(int j = 0; j < maxPlayers - 1; j++) {
+//						System.out.println(rcvData);
+						if(otherPlayers[j].name.equals(rcvData.substring(start,start+3))==true){
+//							System.out.println("player exists");
+							otherPlayers[j].x = Integer.parseInt(rcvData.substring(start+4,start+7));
+							otherPlayers[j].y = Integer.parseInt(rcvData.substring(start+7,start+10));
+							otherPlayers[j].update();
+							break;
+//							System.out.println("tik");
+							
+						}else if(otherPlayers[j].name.equals("???")==true && rcvData.substring(start,start+3).equals("XXX")==false) {
+							otherPlayers[j].name = rcvData.substring(start,start+3);
+							otherPlayers[j].team = Integer.parseInt(rcvData.substring(start+3,start+4));
+							otherPlayers[j].x = Integer.parseInt(rcvData.substring(start+4,start+7));
+							otherPlayers[j].y = Integer.parseInt(rcvData.substring(start+7,start+10));
+							otherPlayers[j].update();
+							
+							connectedPlayers++;
+							System.out.println(rcvData.substring(start,start+3) + "::" + otherPlayers[j].name + ":::" + j + "-" + p + "cp:" + connectedPlayers);
+							j=maxPlayers;
+//							System.out.println(connectedPlayers);
+							break;
+						}
+					}
 				}
+				
 			}
+
 		} catch (UnsupportedEncodingException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		System.out.println("-----------------");
-		System.out.println(convertMapToString(map));
+//		System.out.println("-----------------");
 	}
 	
 	public void showScore(Graphics g, int red, int blue){
@@ -235,9 +280,9 @@ public class GamePanel extends JPanel implements KeyListener, ActionListener, Ru
 				this.repaint();
 			}
 			
-			if(e.getKeyCode() == KeyEvent.VK_Q){
-				team = (team % 2 ) + 1;
-			}
+//			if(e.getKeyCode() == KeyEvent.VK_Q){
+//				team = (team % 2 ) + 1;
+//			}
 			
 			if(e.getKeyCode() == KeyEvent.VK_E){
 				 try {
@@ -271,10 +316,23 @@ public class GamePanel extends JPanel implements KeyListener, ActionListener, Ru
 		}
 		
 		if(k1.getSource()== refreshrate){
-			PlayerTileX = (player.x) / tileDimension;
-			PlayerTileY = (player.y) / tileDimension;
+			if(connectedPlayers == maxPlayers) {
+				for(int j = 0; j < maxPlayers - 1; j++) {
+					int opTileX = otherPlayers[j].x / tileDimension;
+					int opTileY = otherPlayers[j].y / tileDimension;
+					
+					map[opTileY][opTileX] = otherPlayers[j].team;
+					
+					PlayerTileX = (player.x) / tileDimension;
+					PlayerTileY = (player.y) / tileDimension;
+					
+					map[PlayerTileY][PlayerTileX] = team;
+					
+					roundTimer.start();
+				} 
+			}
 			
-			map[PlayerTileY][PlayerTileX] = team;
+			
 
 			if(timer == 0){
 				movementEnabled = false;
@@ -289,19 +347,18 @@ public class GamePanel extends JPanel implements KeyListener, ActionListener, Ru
 	@Override
 	public void run() {
 		// TODO Auto-generated method stub
-
+		if(gameStatus == 1) {
+			roundTimer.start();
+		}
 		while(true){
-			
 			try { 
-
-//				InetAddress IPAddress = InetAddress.getByName("localhost");
-				byte[] receiveData = new byte[1024];
-				
-				DatagramPacket receivePacket = new DatagramPacket(receiveData, receiveData.length);
-
-				convertMapToStringToByte(map);
-				DatagramPacket sendPacket = new DatagramPacket(sendData, sendData.length, InetAddress.getByName(addr), 4444);
+				String fullData = player.dataToString();
+//				System.out.println(fullData);
+				sendData = fullData.getBytes();
+				sendPacket = new DatagramPacket(sendData, sendData.length, InetAddress.getByName(addr), 4444);
 				clientSocket.send(sendPacket);
+//				System.out.println("sent");
+				
 				clientSocket.receive(receivePacket);
 				convertData(receivePacket.getData());
 				

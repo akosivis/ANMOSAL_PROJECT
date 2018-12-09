@@ -8,10 +8,10 @@ public class MainPanelServer extends JFrame {
 	GamePanel g_panel;
 	GameServer g_server;
 	
-	public MainPanelServer(int player, int port) throws UnknownHostException{
+	public MainPanelServer(String name, int player, int port, int team) throws UnknownHostException{
 		String pubAddress = InetAddress.getLocalHost().getHostAddress();
 		System.out.println(pubAddress);
-		g_panel =  new GamePanel(pubAddress,4443,false);
+		g_panel =  new GamePanel(name, pubAddress, 4443, player, false, team);
 
 		g_server = new GameServer(player, port);
 		new Thread(g_server).start();
@@ -20,11 +20,9 @@ public class MainPanelServer extends JFrame {
 		Thread t2 = new Thread(g_panel);
 		t2.start();
 		
-
-		
-		
-		setDefaultCloseOperation(EXIT_ON_CLOSE);
+		setResizable(false);
 		setVisible(true);
+		setDefaultCloseOperation(EXIT_ON_CLOSE);
 		pack();
 	}
 }

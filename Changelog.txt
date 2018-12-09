@@ -1,0 +1,13 @@
+DEC 9
++ changed the starting UI so it's less confusing
++ name added (must be at least 3 characters, any characters more than will be trunated)
++ accepts 3 players (havent tested on 4)
++ sends player's details instead of map
++ you can now see where the other players are.
++ scores still shows up
++ every client sends to port 4444, the client needs to choose (input) port that is available
+
+- the server is still statically bound to ports 4444 and his client counterpart 4443
+- delay will make the score not even on all instances
+- not yet randomized spawn point
+- all characters are still blank rectangles

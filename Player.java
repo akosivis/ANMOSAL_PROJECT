@@ -4,19 +4,28 @@ import java.net.InetAddress;
 public class Player extends Rectangle{
 	int id; int speed = 64; int diameter = 32;
 	int x; int y;
-	
+	int team;
 	int port;
 	int isClient;
+	String name;
 	InetAddress address;
 	
 	boolean movementEnabled = true;
-	
-	
-	
-	
-	public Player(int x, int y, int tileDim, int port, InetAddress addr, int client){
+
+	public Player(String name, int x, int y, int tileDim,int team) {
+		this.name = name;
 		this.x = x;
 		this.y = y;
+		this.team = team;
+		speed = tileDim;
+		diameter = tileDim/2;
+	}
+	
+	public Player(String name, int x, int y, int tileDim, int port, InetAddress addr, int client, int team){
+		this.name = name;
+		this.x = x;
+		this.y = y;
+		this.team = team;
 		this.port = port;
 		this.address = addr;
 		this.isClient = client;
@@ -27,8 +36,10 @@ public class Player extends Rectangle{
 	public String dataToString() {
 		String data = "";
 		
-		data+= isClient;
-		data+= id;
+//		data+= isClient;
+		data+= name;
+//		data+= id;
+		data+= team;
 //		data+= port;
 //		data+= address;
 		
@@ -46,7 +57,7 @@ public class Player extends Rectangle{
 		else
 			data+= y;
 		
-		System.out.println(data.length());
+//		System.out.println(data.length());
 		return data;
 	}
 	public byte[] dataToByte(){
@@ -83,17 +94,6 @@ public class Player extends Rectangle{
 		if(x + diameter + speed <= 800)
 			x += speed;
 
-		update();
-	}
-	
-	public void eat(){
-		diameter++;
-		//speed gets reduced by 1 per increase of size 20
-		
-		if(speed!=1 && (diameter-50)%20==0)
-			speed--;
-		
-//		System.out.println(speed);
 		update();
 	}
 	

@@ -7,82 +7,65 @@ import java.net.SocketTimeoutException;
 
 public class GameServer implements Runnable{
 
+	int dataLength = 10;
 	int playerCount=0;
-	int[][] map1 = new int[10][20];
+	
+	byte[] receiveData = new byte[1024];
+    byte[] sendData = new byte[1024];
 	
 	DatagramSocket serverSocket = null;
-	
-	byte[] map1Byte;
-	
+
 	int port = 4444;
-	String sendAddress;
 	int sendPort;
 	
-	 byte[] receiveData = new byte[1024];
-     byte[] sendData = new byte[1024];
+	String sendAddress;
+	String filler="";
 	
-	public GameServer(){
-       
-//		convertMapToStringToByte(map1);
-		
-		try {
-            serverSocket = new DatagramSocket(port);
-			serverSocket.setSoTimeout(100);
-		} catch (IOException e) {
-            System.exit(-1);
-		}
+    StringBuffer playerData = new StringBuffer();
+    int maxPlayers;
+    
+    int gameStatus = 0;
+    
+    String[][] connectedDetails; // stores all addresses and Ports to check if the connection is unique
 
-	}
-	
 	public GameServer( int playersNum, int portNum){
+		maxPlayers = playersNum;
 		this.port = portNum;
+		connectedDetails = new String[playersNum][2];
+		
+		for(int j=0; j < dataLength; j++){
+			filler+="X";
+		}
+		for(int i=0; i < playersNum; i++) {
+			playerData.append(i+filler); // i is the id
+		}
+//		System.out.println(playerData);
 //		convertMapToStringToByte(map1);
 		try {
+			connectedDetails[0][0] = InetAddress.getLocalHost().getHostAddress();
+			connectedDetails[0][1] = (port-1)+"";
+			playerCount++;
+			
+			
             serverSocket = new DatagramSocket(portNum);
-			serverSocket.setSoTimeout(100);
+			serverSocket.setSoTimeout(50);
 		} catch (IOException e) {
             System.exit(-1);
 		}
 	}
-	public void convertMapToStringToByte(int[][] map2D){
-		String mapString = "";
-		for(int y = 0; y < map2D.length; y++){
-			for(int x = 0; x < map2D[0].length; x++){
-				mapString = mapString + map2D[y][x];
-			}
-		}
-		
-		map1Byte = mapString.getBytes();
-	}
-	
-	public void convertMapToString(int[][] map2D) {
-		String mapString = "";
-		for(int y = 0; y < map2D.length; y++){
-			for(int x = 0; x < map2D[0].length; x++){
-				mapString = mapString + map2D[y][x];
-			}
-		}
-		System.out.println(mapString);
-	}
 
-	public void convertData(byte[] received){
-		
+
+	public void convertData(byte[] received, int id){
 		try {
 			String rcvData = new String(received,"UTF-8");
+
+			int start = (id * dataLength) + (id+1);
+			int end = start + (dataLength);
+//			System.out.println(start+ ":" + end);
+			playerData.replace(start,end,rcvData.substring(0,dataLength));
 			
-//			System.out.println("converting data");
-//			System.out.println(rcvData);
-			
-			// Updates the map
-			String rcvDataMap = rcvData.substring(8); 
-			if(Integer.parseInt(rcvData.substring(0,1))==0) {
-				for(int mapy = 0; mapy < map1.length; mapy++){
-					for(int mapx = 0; mapx < map1[0].length; mapx++){
-						map1[mapy][mapx] = Integer.parseInt(rcvDataMap.substring((mapy * map1[0].length) + mapx, (mapy * map1[0].length) + mapx+1));
-					}
-				}
-				convertMapToStringToByte(map1);
-			}		
+//			System.out.println(playerData);
+
 		} catch (UnsupportedEncodingException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -94,47 +77,75 @@ public class GameServer implements Runnable{
 			serverSocket.receive(rcvPacket);
 			sendAddress = rcvPacket.getAddress().getHostAddress();
 			sendPort = rcvPacket.getPort();
-//			String mapData = new String(rcvPacket.getData(),"UTF-8");
+			
+			int id=0;
+			
+			
+			for(int i = 0; i < playerCount; i++){
+//				System.out.println("sa:" + sendAddress + " sp:" + sendPort);
+//				System.out.println("sa:" + connectedDetails[i][0].equals(sendAddress) + " sp:" + Integer.parseInt(connectedDetails[i][1])== sendPort));
+				if(connectedDetails[i][0].equals(sendAddress) == true && Integer.parseInt(connectedDetails[i][1]) == sendPort) {
+						id = i;
+//						System.out.println("Already connected. index:"+i);
+						break;
+				}
+				else if( connectedDetails[i][0].equals(sendAddress) == true && Integer.parseInt(connectedDetails[i][1]) != sendPort && playerCount < maxPlayers && i==playerCount-1) {
+						//new Connection
+						connectedDetails[i+1][0] = sendAddress;
+						connectedDetails[i+1][1] = sendPort+"";
+						playerCount++;
+						System.out.println("new Connection!! pc:" + playerCount );
+						break;
+	
+				}
+				else if(connectedDetails[i][0].equals(sendAddress) == false) {
+						//new Connection
+					if(playerCount < maxPlayers) {
+						connectedDetails[i+1][0] = sendAddress;
+						connectedDetails[i+1][1] = sendPort+"";
+						playerCount++;
+						System.out.println("new Connection!");
+					}
+				}
+			}
+
 			if(rcvPacket.getData()!=null)
-				convertData(rcvPacket.getData());
+				convertData(rcvPacket.getData(), id);
 			else
 				System.out.println("empty data");
 
-//			convertMapToStringToByte(map1);
-//			System.out.println("received");
+
 		} catch(SocketTimeoutException ste){}
 		catch (IOException e) {
 			e.printStackTrace();
 		}
-		// what to consider from receiving
-		// player id , length of the buffer, eachplayer.x and eachplayer.y, the entire map
-		// 
 	}
 	
 	public void sendData(){
 		InetAddress address;
 		DatagramPacket sendPacket;
-		byte[] sendDataPacket = map1Byte;
-//		try {
-//			System.out.println(new String(sendDataPacket,"UTF-8"));
-//		} catch (UnsupportedEncodingException e1) {
-//			e1.printStackTrace();
-//		}
+		StringBuffer sendString = new StringBuffer();
 		
-//		for(int i = 1; i < 3; i++) {
+		sendString.append(gameStatus+""+playerData);
+//		System.out.println("sending: " +sendString);
+		byte[] sendDataPacket = sendString.toString().getBytes();
+		
 			try {
-				address = InetAddress.getLocalHost();
-//				address = InetAddress.getByName("localhost");
+				for(int id = 0; id < playerCount; id++) {
+				address = InetAddress.getByName(connectedDetails[id][0]);
+				sendPort = Integer.parseInt(connectedDetails[id][1]);
+
 				sendPacket =  new DatagramPacket(sendDataPacket, sendDataPacket.length, address, sendPort);
 				serverSocket.send(sendPacket);
-				System.out.println("sent?");
+//				System.out.println("sent?");
+				}
 			} catch(SocketTimeoutException exception){
 				
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			} 
-//		}
+
 		
 //			System.out.println("sent");
 	}
@@ -142,16 +153,17 @@ public class GameServer implements Runnable{
 	public void run() {
 		// TODO Auto-generated method stub
 		while(true){
+			if(playerCount==maxPlayers) {
+				gameStatus = 1;
+			}
 			byte[] buf = new byte[256];
 			DatagramPacket packet = new DatagramPacket(buf, buf.length);
 //			sendPacket = new DatagramPacket(buf, buf.length, player.getAddress(),player.getPort());
 			DatagramPacket receivePacket = new DatagramPacket(receiveData, receiveData.length);
 			try{
 //				serverSocket.receive(packet);
-
 				receiveData(receivePacket);
 				sendData();
-
 //				serverSocket.close();
 
 			}catch(Exception ioe){}
