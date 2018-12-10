@@ -1,3 +1,13 @@
+DEC 11
++ Randomized Spawn
++ AVATAR with NAMES :)
++ Less delay
++ TESTED on 4 players
++ Modified UI so Timer is at the Bottom
++ Timer font turns red if less than 20 seconds left
+- Single Round (tried implementing another round it's hard LOL)
+
+
 DEC 9
 + changed the starting UI so it's less confusing
 + name added (must be at least 3 characters, any characters more than will be trunated)

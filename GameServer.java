@@ -10,8 +10,8 @@ public class GameServer implements Runnable{
 	int dataLength = 10;
 	int playerCount=0;
 	
-	byte[] receiveData = new byte[1024];
-    byte[] sendData = new byte[1024];
+	byte[] receiveData = new byte[256];
+    byte[] sendData = new byte[256];
 	
 	DatagramSocket serverSocket = null;
 
@@ -27,7 +27,8 @@ public class GameServer implements Runnable{
     int gameStatus = 0;
     
     String[][] connectedDetails; // stores all addresses and Ports to check if the connection is unique
-
+    DatagramPacket receivePacket = new DatagramPacket(receiveData, receiveData.length);
+    
 	public GameServer( int playersNum, int portNum){
 		maxPlayers = playersNum;
 		this.port = portNum;
@@ -156,16 +157,12 @@ public class GameServer implements Runnable{
 			if(playerCount==maxPlayers) {
 				gameStatus = 1;
 			}
-			byte[] buf = new byte[256];
-			DatagramPacket packet = new DatagramPacket(buf, buf.length);
-//			sendPacket = new DatagramPacket(buf, buf.length, player.getAddress(),player.getPort());
-			DatagramPacket receivePacket = new DatagramPacket(receiveData, receiveData.length);
+
 			try{
 //				serverSocket.receive(packet);
 				receiveData(receivePacket);
 				sendData();
 //				serverSocket.close();
-
 			}catch(Exception ioe){}
 		}
 	}

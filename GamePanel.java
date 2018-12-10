@@ -15,6 +15,7 @@ import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.SocketException;
 import java.net.UnknownHostException;
+import java.util.Random;
 
 import javax.imageio.ImageIO;
 import javax.swing.JPanel;
@@ -27,24 +28,27 @@ public class GamePanel extends JPanel implements KeyListener, ActionListener, Ru
 	int plyDataLength=0;
 	Timer refreshrate;
 	Timer roundTimer;
+	Timer roundTransition;
 	
 	BufferedImage tiles;
 	
 	String direction = "NONE";
 	
+	int[] roundWinner = new int[3];
+	int currentRound =1;
 	int maxPlayers = 0;
 	int gameStatus = 0;
 	int team = 1;
-	int timer = 100;
+	int timer = 50 , transition = 3;
 	int tileDimension = 32;
-	int connectedPlayers = 1;
+	int connectedPlayers = 1; // 1 because you are connected already
 	int PlayerTileX;
 	int PlayerTileY;
 	int tCenter; 	// tile Center
 	boolean isClient;
-	boolean movementEnabled;
+	boolean movementEnabled = false; // disables movement
 	
-	int[][] map = {{0,3,3,3,3,0,0,0,0,0,0,0,0,0,0,3,3,3,3,0},
+	int[][] map = {{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
 			   {0,3,3,3,3,0,0,0,0,0,0,0,0,0,0,3,3,3,3,0},
 			   {0,3,3,3,3,0,0,0,0,0,0,0,0,0,0,3,3,3,3,0},
 			   {0,0,0,0,0,0,0,0,3,0,0,3,0,0,0,0,0,0,0,0},
@@ -53,10 +57,18 @@ public class GamePanel extends JPanel implements KeyListener, ActionListener, Ru
 			   {0,0,0,0,0,0,0,0,3,0,0,3,0,0,0,0,0,0,0,0},
 			   {0,3,3,3,3,0,0,0,0,0,0,0,0,0,0,3,3,3,3,0},
 			   {0,3,3,3,3,0,0,0,0,0,0,0,0,0,0,3,3,3,3,0},
-			   {0,3,3,3,3,0,0,0,0,0,0,0,0,0,0,3,3,3,3,0}};;
-		  
-	String mapData;
+			   {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}};;
 	
+	int[][] map2 = {{4,0,0,0,0,0,0,3,3,3,3,3,3,0,0,0,0,0,0,4},
+					{0,0,0,0,0,0,0,0,3,3,0,0,0,0,0,0,0,0,0,0},
+					{3,0,0,0,0,0,0,0,3,3,0,0,0,0,0,0,0,0,0,3},
+					{3,0,3,3,3,3,0,0,3,3,0,0,0,0,0,0,0,0,0,3},
+					{3,0,3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,3},
+					{3,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3,3,3},
+					{3,0,0,0,0,0,0,0,0,0,3,3,0,0,3,3,3,3,3,3},
+					{3,0,0,0,0,0,0,0,0,0,3,3,0,0,0,0,0,0,0,3},
+					{0,0,0,0,0,0,0,0,0,0,3,3,0,0,0,0,0,0,0,0},
+					{4,0,0,0,0,0,0,3,3,3,3,3,3,0,0,0,0,0,0,4}};
 	byte[] sendData = new byte[1024];
 	
 	DatagramSocket clientSocket = null;
@@ -80,9 +92,10 @@ public class GamePanel extends JPanel implements KeyListener, ActionListener, Ru
 		this.team = team;
 		this.isClient = isClient;
 		
-		tCenter = (tileDimension/4);
+		tCenter = (tileDimension/12);
 		otherPlayers = new Player[numPlayers-1];
 		
+		// Loads the tileset 
 		try {
 			tiles = ImageIO.read(new File("img/TileSet.png"));
 			
@@ -90,23 +103,38 @@ public class GamePanel extends JPanel implements KeyListener, ActionListener, Ru
 
 		}
 	
-		this.setPreferredSize(new Dimension(tileDimension * 20,tileDimension * 10));
+		this.setPreferredSize(new Dimension(tileDimension * 20, (tileDimension * 10) + 30));
 		this.setFocusable(true);
 		this.requestFocusInWindow();
 		this.addKeyListener(this);
 		
+		// Finds a spawn point
+		int xSpawn = 0;
+		int ySpawn = 0;
+		
+		Random spawn = new Random();
+		xSpawn = spawn.nextInt(20);
+		ySpawn = spawn.nextInt(10);
+		
+		while(map[ySpawn][xSpawn]==3) {
+			xSpawn = spawn.nextInt(20);
+			ySpawn = spawn.nextInt(10);
+		}
+		
+		// Spawns players
+		System.out.println(xSpawn + ":" + ySpawn);
 		for(int i=0;i<numPlayers-1; i++) {
 			otherPlayers[i] = new Player("???", 999, 999, tileDimension, 0);
 		}
 		
+
 		try {
 			if(isClient == true)
 				player = new Player( name, tCenter, tCenter, tileDimension , port, InetAddress.getLocalHost(),1, team);
 			else
-				player = new Player( name, tCenter + (tileDimension*9), tCenter, tileDimension , port, InetAddress.getLocalHost(),0, team);
+				player = new Player( name, 1 + (tileDimension*xSpawn), tCenter+ (tileDimension*ySpawn), tileDimension , port, InetAddress.getLocalHost(),0, team);
 			
 			plyDataLength = player.dataToString().length();
-			movementEnabled = player.movementEnabled;
 			
 			byte[] receiveData = new byte[1024];
 			receivePacket = new DatagramPacket(receiveData, receiveData.length);
@@ -118,8 +146,9 @@ public class GamePanel extends JPanel implements KeyListener, ActionListener, Ru
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		refreshrate = new Timer (10,this);
+		refreshrate = new Timer (5,this);
 		roundTimer =  new Timer (1000,this);
+		roundTransition = new Timer (3000,this);
 		
 //		roundTimer.start();
 		refreshrate.start();
@@ -127,17 +156,6 @@ public class GamePanel extends JPanel implements KeyListener, ActionListener, Ru
 		
 	}
 	
-	public String convertMapToString(int[][] map2D){
-		String mapString = "";
-		for(int y = 0; y < map2D.length; y++){
-			for(int x = 0; x < map2D[0].length; x++){
-				mapString = mapString + map2D[y][x];
-			}
-		}
-		
-		return mapString;
-	}
-
 	public void paintComponent(Graphics g){
 		super.paintComponent(g);
 		
@@ -146,8 +164,7 @@ public class GamePanel extends JPanel implements KeyListener, ActionListener, Ru
 		
 		for(int mapy = 0; mapy < map.length; mapy++){
 			for(int mapx = 0; mapx < map[0].length; mapx++){
-				g.drawImage(tiles.getSubimage(map[mapy][mapx] * 64, 0, 64, 64), tileDimension * mapx, tileDimension * mapy,this);
-//				collisionRect[mapy][mapx] = new Rectangle(mapx * tileDimension, mapy * tileDimension ,tileDimension,tileDimension);
+				g.drawImage(tiles.getSubimage(map[mapy][mapx] * 64, 0, 64, 64), tileDimension * mapx, tileDimension * mapy, tileDimension, tileDimension,this);
 				
 				if(map[mapy][mapx] == 1){
 					redCount++;
@@ -157,13 +174,23 @@ public class GamePanel extends JPanel implements KeyListener, ActionListener, Ru
 			}
 		}
 		
+		// Render other players
 		for(int i = 0; i < otherPlayers.length;i++) {
-			g.drawRect(otherPlayers[i].x, otherPlayers[i].y, otherPlayers[i].diameter, otherPlayers[i].diameter);
+			g.drawImage(tiles.getSubimage((4 + otherPlayers[i].team) * 64, 0, 64, 64), otherPlayers[i].x, otherPlayers[i].y, tileDimension, tileDimension,this);
+			g.drawString(otherPlayers[i].name, otherPlayers[i].x + 2 , otherPlayers[i].y + tileDimension + 3);
 		}
-		g.drawRect(player.x, player.y, player.diameter, player.diameter);
 		
-		g.setColor(Color.GRAY);
-		g.drawString(timer + "", 300 , 20);
+		// Render Current Player (always on top of others)
+		g.drawImage(tiles.getSubimage((4 + team) * 64, 0, 64, 64), player.x, player.y, tileDimension, tileDimension,this);
+		g.drawString(player.name, player.x + 2 , player.y + tileDimension + 3);
+		
+
+		g.setColor(Color.BLACK);
+		if(timer<20) {
+			g.setColor(Color.RED);
+		}
+		
+		g.drawString(timer + "", 300 , (tileDimension * 10) + 15);
 		
 		if(timer == 0){
 			showScore(g, redCount,blueCount);
@@ -231,7 +258,8 @@ public class GamePanel extends JPanel implements KeyListener, ActionListener, Ru
 		g.setColor(Color.WHITE);
 		g.drawString(red + "", this.getWidth()/4 - 40 , this.getHeight()/2 - 40);
 		g.drawString(blue + "", (3 * this.getWidth())/4 - 40, this.getHeight()/2 - 40);
-	}
+		
+		}
 	
 	@Override
 	public void keyPressed(KeyEvent k1) {
@@ -254,7 +282,7 @@ public class GamePanel extends JPanel implements KeyListener, ActionListener, Ru
 		
 		if(movementEnabled==true){
 			if(e.getKeyCode() == KeyEvent.VK_S){
-				if(player.y + tileDimension < this.getHeight()){
+				if(player.y + tileDimension < this.getHeight() - 30){
 					direction = "D";
 					if(map[PlayerTileY+1][PlayerTileX]!=3)
 					player.y = player.y + tileDimension;
@@ -279,10 +307,6 @@ public class GamePanel extends JPanel implements KeyListener, ActionListener, Ru
 				}
 				this.repaint();
 			}
-			
-//			if(e.getKeyCode() == KeyEvent.VK_Q){
-//				team = (team % 2 ) + 1;
-//			}
 			
 			if(e.getKeyCode() == KeyEvent.VK_E){
 				 try {
@@ -316,6 +340,7 @@ public class GamePanel extends JPanel implements KeyListener, ActionListener, Ru
 		}
 		
 		if(k1.getSource()== refreshrate){
+			// Checks if all players are connected
 			if(connectedPlayers == maxPlayers) {
 				for(int j = 0; j < maxPlayers - 1; j++) {
 					int opTileX = otherPlayers[j].x / tileDimension;
@@ -328,11 +353,10 @@ public class GamePanel extends JPanel implements KeyListener, ActionListener, Ru
 					
 					map[PlayerTileY][PlayerTileX] = team;
 					
+					movementEnabled = true;
 					roundTimer.start();
 				} 
 			}
-			
-			
 
 			if(timer == 0){
 				movementEnabled = false;

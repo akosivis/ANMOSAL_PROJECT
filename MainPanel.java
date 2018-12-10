@@ -138,6 +138,7 @@ public class MainPanel extends JFrame implements ActionListener{
 		if(b.getSource()==server) {
 			hostText.setEnabled(false);
 			portText.setEnabled(false);
+			portText.setText("4444");
 			startAs="server";
 		}
 		
