@@ -136,7 +136,7 @@ public class GameServer implements Runnable{
 				address = InetAddress.getByName(connectedDetails[id][0]);
 				sendPort = Integer.parseInt(connectedDetails[id][1]);
 
-				System.out.println("address: " + address + "port: " + sendPort);
+				// System.out.println("address: " + address + "port: " + sendPort);
 				sendPacket =  new DatagramPacket(sendDataPacket, sendDataPacket.length, address, sendPort);
 				serverSocket.send(sendPacket);
 //				System.out.println("sent?");
