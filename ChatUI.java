@@ -4,7 +4,7 @@ import java.awt.*;
 import javax.swing.*;
 import java.net.*;
 
-public class ChatForClient extends JPanel{
+public class ChatUI extends JPanel{
 	
 	JPanel panelChats;
 	JPanel panelButton;
@@ -14,8 +14,8 @@ public class ChatForClient extends JPanel{
 	JTextField fieldInsertChats;
 	JButton sendButton;
 	JButton disconnectButton;
-	
-	public ChatForClient(){
+
+	public ChatUI(){
 		//------1st panel 
 		fieldChats = new JScrollPane();
 		fieldChats.setPreferredSize(new Dimension(600, 60));
@@ -47,7 +47,7 @@ public class ChatForClient extends JPanel{
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
         //Create and set up the content pane.
-        JComponent newContentPane = new ChatForClient();
+        JComponent newContentPane = new ChatUI();
         newContentPane.setOpaque(true); //content panes must be opaque
         frame.setContentPane(newContentPane);
 
