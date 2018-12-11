@@ -4,11 +4,11 @@ import javax.swing.JFrame;
 
 public class MainPanelClient extends JFrame{
 	
-	ChatForClient chat_client;
+	ChatUI chat_client;
 
 	public MainPanelClient(String name, String addr, int port, int player, int team) {
 		GamePanel g_panel =  new GamePanel(name, addr,port,player, true, team);
-		chat_client = new ChatForClient();
+		chat_client = new ChatUI();
 		this.setLayout(new BorderLayout());
 		
 		add(g_panel, BorderLayout.CENTER);

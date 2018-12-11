@@ -8,14 +8,14 @@ public class MainPanelServer extends JFrame {
 
 	GamePanel g_panel;
 	GameServer g_server;
-	ChatForServer chat_server;
+	ChatUI chat_server;
 	
 	public MainPanelServer(String name, int player, int port, int team , String address) throws UnknownHostException{
 	
 		System.out.println(address);
 		g_panel =  new GamePanel(name, address, 4443, player, false, team);
 
-		chat_server = new ChatForServer();
+		chat_server = new ChatUI();
 		
 		g_server = new GameServer(player, port, address);
 		new Thread(g_server).start();
