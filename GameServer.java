@@ -43,7 +43,7 @@ public class GameServer implements Runnable{
 //		System.out.println(playerData);
 //		convertMapToStringToByte(map1);
 		try {
-			connectedDetails[0][0] = address;
+			connectedDetails[0][0] = InetAddress.getLocalHost().getHostAddress();
 			connectedDetails[0][1] = (port-1)+"";
 			playerCount++;
 			
@@ -127,8 +127,8 @@ public class GameServer implements Runnable{
 		DatagramPacket sendPacket;
 		StringBuffer sendString = new StringBuffer();
 		
-		sendString.append(gameStatus+""+playerData);
-//		System.out.println("sending: " +sendString);
+		// sendString.append(gameStatus+""+playerData);
+		// System.out.println("sending: " +sendString);
 		byte[] sendDataPacket = sendString.toString().getBytes();
 		
 			try {
@@ -136,6 +136,7 @@ public class GameServer implements Runnable{
 				address = InetAddress.getByName(connectedDetails[id][0]);
 				sendPort = Integer.parseInt(connectedDetails[id][1]);
 
+				System.out.println("address: " + address + "port: " + sendPort);
 				sendPacket =  new DatagramPacket(sendDataPacket, sendDataPacket.length, address, sendPort);
 				serverSocket.send(sendPacket);
 //				System.out.println("sent?");

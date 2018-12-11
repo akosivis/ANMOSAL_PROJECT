@@ -130,7 +130,7 @@ public class GamePanel extends JPanel implements KeyListener, ActionListener, Ru
 
 		try {
 			if(isClient == true)
-				player = new Player( name, tCenter, tCenter, tileDimension , port, InetAddress.getLocalHost(),1, team);
+				player = new Player( name, 1 + (tileDimension*xSpawn), tCenter+ (tileDimension*ySpawn), tileDimension , port, InetAddress.getLocalHost(),1, team);
 			else
 				player = new Player( name, 1 + (tileDimension*xSpawn), tCenter+ (tileDimension*ySpawn), tileDimension , port, InetAddress.getLocalHost(),0, team);
 			
@@ -215,7 +215,7 @@ public class GamePanel extends JPanel implements KeyListener, ActionListener, Ru
 			String rcvData = new String(received,"UTF-8");
 
 			gameStatus = Integer.parseInt(rcvData.substring(0,1));
-			
+			// System.out.println(rcvData+"");
 			for(int p = 0; p < maxPlayers; p++){
 				int start = (p*plyDataLength) + p+2;
 				int end   = start + plyDataLength;
