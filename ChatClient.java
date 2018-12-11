@@ -14,10 +14,10 @@ public class ChatClient{
     private static String lobbyId = "AB1L";
     private static int max = 3;
 
-    private static Player player;
-    private static Socket socket;
-    private static OutputStream output;
-    private static InputStream input;
+    private Player player;
+    private Socket socket;
+    private OutputStream output;
+    private InputStream input;
 
     public ChatClient(String name){
         Player.Builder player = Player.newBuilder().setName(name);
