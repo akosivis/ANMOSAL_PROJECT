@@ -29,8 +29,10 @@ public class GamePanel extends JPanel implements KeyListener, ActionListener, Ru
 	Timer refreshrate;
 	Timer roundTimer;
 	Timer roundTransition;
+	Timer animationTimer;
 	
-	BufferedImage tiles;
+	BufferedImage tiles; 
+	BufferedImage overlay;
 	
 	String direction = "NONE";
 	
@@ -39,7 +41,7 @@ public class GamePanel extends JPanel implements KeyListener, ActionListener, Ru
 	int maxPlayers = 0;
 	int gameStatus = 0;
 	int team = 1;
-	int timer = 50 , transition = 3;
+	int timer = 50;
 	int tileDimension = 32;
 	int connectedPlayers = 1; // 1 because you are connected already
 	int PlayerTileX;
@@ -70,20 +72,17 @@ public class GamePanel extends JPanel implements KeyListener, ActionListener, Ru
 					{0,0,0,0,0,0,0,0,0,0,3,3,0,0,0,0,0,0,0,0},
 					{4,0,0,0,0,0,0,3,3,3,3,3,3,0,0,0,0,0,0,4}};
 	byte[] sendData = new byte[1024];
-	
+	String dots = ".";
 	DatagramSocket clientSocket = null;
 	String addr;
 	
 	DatagramPacket receivePacket; 
 	DatagramPacket sendPacket;
 	
+	int animationDot;
 	int port;
 	
 	//gamePanel with Parameters from Main
-	public GamePanel(int numOfPlayers, int id, int port, int addr){
-		
-	}
-	
 	public GamePanel(String name, String addr, int port, int numPlayers, boolean isClient, int team){
 		
 		this.maxPlayers = numPlayers;
@@ -98,16 +97,17 @@ public class GamePanel extends JPanel implements KeyListener, ActionListener, Ru
 		// Loads the tileset 
 		try {
 			tiles = ImageIO.read(new File("img/TileSet.png"));
-			
+			overlay = ImageIO.read(new File("img/waiting.png"));
 		} catch (Exception e){
 
 		}
-	
+		
 		this.setPreferredSize(new Dimension(tileDimension * 20, (tileDimension * 10) + 30));
 		this.setFocusable(true);
 		this.requestFocusInWindow();
 		this.addKeyListener(this);
 		
+
 		// Finds a spawn point
 		int xSpawn = 0;
 		int ySpawn = 0;
@@ -139,20 +139,23 @@ public class GamePanel extends JPanel implements KeyListener, ActionListener, Ru
 			byte[] receiveData = new byte[1024];
 			receivePacket = new DatagramPacket(receiveData, receiveData.length);
 			clientSocket = new DatagramSocket(player.port, player.address);
-//			System.out.println(InetAddress.getLocalHost());
-		} catch (UnknownHostException e) {
+			
+			} catch (UnknownHostException e) {
 			e.printStackTrace();
 		} catch (SocketException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		refreshrate = new Timer (5,this);
 		roundTimer =  new Timer (1000,this);
+		animationTimer = new Timer(500,this);
 		roundTransition = new Timer (3000,this);
 		
 //		roundTimer.start();
+		animationTimer.start();
 		refreshrate.start();
-		
+
+//		animationDot = this.getWidth()/2;
+//		 This is just for fancy animation		
 		
 	}
 	
@@ -184,13 +187,22 @@ public class GamePanel extends JPanel implements KeyListener, ActionListener, Ru
 		g.drawImage(tiles.getSubimage((4 + team) * 64, 0, 64, 64), player.x, player.y, tileDimension, tileDimension,this);
 		g.drawString(player.name, player.x + 2 , player.y + tileDimension + 3);
 		
-
+		if(connectedPlayers < maxPlayers && animationTimer.isRunning()== true) {
+			g.drawImage(overlay, 0, (this.getHeight()/2) - overlay.getHeight()/2, this.getWidth(), overlay.getHeight(),this);
+			g.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 20));
+			g.setColor(Color.WHITE);
+			
+			int nextX= this.getWidth()/2 - (2*tileDimension) + animationDot;
+			g.drawString(dots, nextX, this.getHeight()/2 + tileDimension);
+			
+		}
+		g.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 20));
 		g.setColor(Color.BLACK);
 		if(timer<20) {
 			g.setColor(Color.RED);
 		}
 		
-		g.drawString(timer + "", 300 , (tileDimension * 10) + 15);
+		g.drawString(timer + "", this.getWidth()/2 - 10, (tileDimension * 10) + 20);
 		
 		if(timer == 0){
 			showScore(g, redCount,blueCount);
@@ -201,7 +213,6 @@ public class GamePanel extends JPanel implements KeyListener, ActionListener, Ru
 	public void convertData(byte[] received){
 		try {
 			String rcvData = new String(received,"UTF-8");
-//			System.out.println(rcvData);
 
 			gameStatus = Integer.parseInt(rcvData.substring(0,1));
 			
@@ -213,14 +224,12 @@ public class GamePanel extends JPanel implements KeyListener, ActionListener, Ru
 					continue;
 				}else {
 					for(int j = 0; j < maxPlayers - 1; j++) {
-//						System.out.println(rcvData);
 						if(otherPlayers[j].name.equals(rcvData.substring(start,start+3))==true){
 //							System.out.println("player exists");
 							otherPlayers[j].x = Integer.parseInt(rcvData.substring(start+4,start+7));
 							otherPlayers[j].y = Integer.parseInt(rcvData.substring(start+7,start+10));
 							otherPlayers[j].update();
 							break;
-//							System.out.println("tik");
 							
 						}else if(otherPlayers[j].name.equals("???")==true && rcvData.substring(start,start+3).equals("XXX")==false) {
 							otherPlayers[j].name = rcvData.substring(start,start+3);
@@ -232,7 +241,6 @@ public class GamePanel extends JPanel implements KeyListener, ActionListener, Ru
 							connectedPlayers++;
 							System.out.println(rcvData.substring(start,start+3) + "::" + otherPlayers[j].name + ":::" + j + "-" + p + "cp:" + connectedPlayers);
 							j=maxPlayers;
-//							System.out.println(connectedPlayers);
 							break;
 						}
 					}
@@ -248,10 +256,10 @@ public class GamePanel extends JPanel implements KeyListener, ActionListener, Ru
 	}
 	
 	public void showScore(Graphics g, int red, int blue){
-		g.setColor(Color.decode("#ff5441"));
+		g.setColor(new Color(255, 108, 108, 160));
 		g.fillRect(0, 0, this.getWidth()/2, this.getHeight());
 		
-		g.setColor(Color.decode("#806fff"));
+		g.setColor(new Color(163,131,228,160));
 		g.fillRect(this.getWidth()/2, 0, this.getWidth()/2, this.getHeight());
 	
 		g.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 40));;
@@ -329,7 +337,13 @@ public class GamePanel extends JPanel implements KeyListener, ActionListener, Ru
 	@Override
 	public void actionPerformed(ActionEvent k1) {
 		// TODO Auto-generated method stub
-		
+		if(k1.getSource() == animationTimer){
+			if(dots.length() < 25) {
+				dots += ".";
+			}else{
+				dots =".";
+			}
+		}
 		
 		if(k1.getSource() == roundTimer){
 			if(timer > 0)
@@ -355,6 +369,7 @@ public class GamePanel extends JPanel implements KeyListener, ActionListener, Ru
 					
 					movementEnabled = true;
 					roundTimer.start();
+					animationTimer.stop();
 				} 
 			}
 

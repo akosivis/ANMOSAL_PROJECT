@@ -24,6 +24,7 @@ public class MainPanelServer extends JFrame {
 		Thread t2 = new Thread(g_panel);
 		t2.start();
 		
+		this.setTitle("Conquer! Connecting to: " + pubAddress  );
 		setResizable(false);
 		setVisible(true);
 		setDefaultCloseOperation(EXIT_ON_CLOSE);
