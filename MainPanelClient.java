@@ -18,6 +18,7 @@ public class MainPanelClient extends JFrame{
 		t3.start();
 		
 		setResizable(false);
+		this.setTitle("Conquer! Connecting to: " + addr  );
 		this.setVisible(true);
 		this.setDefaultCloseOperation(EXIT_ON_CLOSE);
 		this.pack();

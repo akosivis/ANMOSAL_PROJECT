@@ -29,7 +29,7 @@ public class GameServer implements Runnable{
     String[][] connectedDetails; // stores all addresses and Ports to check if the connection is unique
     DatagramPacket receivePacket = new DatagramPacket(receiveData, receiveData.length);
     
-	public GameServer( int playersNum, int portNum){
+	public GameServer( int playersNum, int portNum , String address){
 		maxPlayers = playersNum;
 		this.port = portNum;
 		connectedDetails = new String[playersNum][2];
@@ -43,7 +43,7 @@ public class GameServer implements Runnable{
 //		System.out.println(playerData);
 //		convertMapToStringToByte(map1);
 		try {
-			connectedDetails[0][0] = InetAddress.getLocalHost().getHostAddress();
+			connectedDetails[0][0] = address;
 			connectedDetails[0][1] = (port-1)+"";
 			playerCount++;
 			
