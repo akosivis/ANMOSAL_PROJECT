@@ -24,7 +24,7 @@ public class MainPanel extends JFrame implements ActionListener{
 	private JTextField portText = new JTextField("4444");
 	private JTextField hostText = new JTextField("192.168.10.189");
 	private JTextField playersText = new JTextField("2");
-	private JLabel hostLabel = new JLabel("Host Address (for client):");
+	private JLabel hostLabel = new JLabel("Host Address:");
 	private JLabel portLabel = new JLabel("Port:");
 	private JLabel playersLabel = new JLabel("Num of Players:");
 	private JButton serverButton = new JButton("Start as Server");
@@ -136,7 +136,7 @@ public class MainPanel extends JFrame implements ActionListener{
 		}
 		
 		if(b.getSource()==server) {
-			hostText.setEnabled(false);
+//			hostText.setEnabled(false);
 			portText.setEnabled(false);
 			portText.setText("4444");
 			startAs="server";
@@ -154,9 +154,10 @@ public class MainPanel extends JFrame implements ActionListener{
 //				System.out.println(name);
 				int port = Integer.parseInt(portText.getText());
 				int players = Integer.parseInt(playersText.getText());
+				String addr = hostText.getText();
 				
 				try {
-					MainPanelServer mpserver =  new MainPanelServer(name, players, port, team);
+					MainPanelServer mpserver =  new MainPanelServer(name, players, port, team , addr);
 				} catch (UnknownHostException e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
@@ -164,6 +165,10 @@ public class MainPanel extends JFrame implements ActionListener{
 				
 				this.dispose();
 			}else if(startAs.equals("client")==true) {
+				while(nameText.getText().length() <3) {
+					nameText.setText(nameText.getText()+ "-");
+				}
+				
 				String name = nameText.getText().substring(0,3);
 				int port = Integer.parseInt(portText.getText());
 				String addr = hostText.getText();
