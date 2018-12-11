@@ -129,7 +129,7 @@ public class MainPanel extends JFrame implements ActionListener{
 //		this.add(serverButton);
 //		this.add(clientButton);
 		
-		setPreferredSize(new Dimension(600,300));
+		setPreferredSize(new Dimension(800,300));
 		setDefaultCloseOperation(EXIT_ON_CLOSE);
 		setResizable(false);
 		pack();
