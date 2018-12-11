@@ -7,6 +7,7 @@ import java.io.*;
 import java.util.Scanner;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.lang.Thread;
 
 public class ChatClient{
     private final static String server_ip = "202.92.144.45";
@@ -15,6 +16,7 @@ public class ChatClient{
     private static String lobbyId = "AB1L";
     private static Player player;
     private static Scanner sc = new Scanner(System.in);
+    private static String id = "0";
 
     public ChatClient(){
 
@@ -53,12 +55,10 @@ public class ChatClient{
 
         //sample player
         Player.Builder player = Player.newBuilder().setName("Mojica");
-        player.build();
+        this.player = player.build();
 
         ConnectPacket.Builder connect = ConnectPacket.newBuilder();
-        connect.setType(PacketType.CONNECT).setPlayer(player).setLobbyId(this.lobbyId);
-
-        this.player = player.build();
+        connect.setType(PacketType.CONNECT).setPlayer(this.player).setLobbyId(this.lobbyId);
 
         return connect.build();
     }
@@ -156,7 +156,7 @@ public class ChatClient{
     private void receiveChat(OutputStream output, InputStream input){
         /* receiving chat */
         try{
-            Timer timer = new Timer();
+            /*Timer timer = new Timer();
 
             timer.schedule(new TimerTask() {
                 @Override
@@ -167,7 +167,8 @@ public class ChatClient{
                         e.printStackTrace();
                     }
                 }
-            }, 2*60*1000);
+            }, 2*60*1000);*/
+            while(input.available() == 0){}
             
             if(input.available() != 0){
                 byte[] toParse = new byte[input.available()];
@@ -176,7 +177,9 @@ public class ChatClient{
                 TcpPacket rp = TcpPacket.parseFrom(toParse);
                 if(rp.getType() == TcpPacket.PacketType.CHAT){
                     ChatPacket suc_res = ChatPacket.parseFrom(toParse);
-                    System.out.println(suc_res.getPlayer().getName() + ": " + suc_res.getMessage());
+                    if(this.player.getName() == suc_res.getPlayer().getName()){
+                        System.out.println(suc_res.getPlayer().getName() + ": " + suc_res.getMessage());
+                    }
                 }
                 else errorChecker("ChatPacket", rp, toParse);
             }
@@ -194,7 +197,7 @@ public class ChatClient{
         }
     }
 
-    private void clickDisconnect(OutputStream output, InputStream input){
+    private void clickDisconnect(OutputStream output, InputStream input, Socket socket){
         /* to disconnect */
         try{
             output.write(makeDisconnectPacket().toByteArray());
@@ -209,6 +212,10 @@ public class ChatClient{
                 DisconnectPacket suc_res = DisconnectPacket.parseFrom(toParse);
                 System.out.println(suc_res);
                 this.isConnected = false;
+
+                output.close();
+                input.close();
+                socket.close();
             }else errorChecker("DisconnectPacket", rp, toParse);
         }catch(Exception e){
             e.printStackTrace();
@@ -246,22 +253,32 @@ public class ChatClient{
             OutputStream output = socket.getOutputStream();
             InputStream input = socket.getInputStream();
 
-            client.clickCreateLobby(output, input);
+            //client.clickCreateLobby(output, input);
             client.clickConnectToLobby(output, input);
+
+            Thread readMessage = new Thread(new Runnable(){ 
+                @Override
+                public void run() { 
+                    while (client.isConnected) { 
+                        client.receiveChat(output,input);
+                        try{
+                            Thread.sleep(2000);
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                    } 
+                } 
+            }); 
+
+            readMessage.start(); 
 
             while(client.isConnected){
                 System.out.print(client.player.getName() + ": ");
-                if(client.sc.hasNext()){
-                    client.sendChat(output, input);
-                }
-                client.receiveChat(output,input);
+                client.sendChat(output, input);
             }
 
-            //client.clickDisconnect(output, input);
+            //client.clickDisconnect(output, input); 
 
-            output.close();
-            input.close();
-            socket.close();
         }catch(IOException e){
             e.printStackTrace();
         }
