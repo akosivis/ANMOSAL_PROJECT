@@ -83,7 +83,7 @@ public class GameServer implements Runnable{
 			
 			
 			for(int i = 0; i < playerCount; i++){
-				System.out.println("sa:" + sendAddress + " sp:" + sendPort);
+				// System.out.println("sa:" + sendAddress + " sp:" + sendPort);
 //				System.out.println("sa:" + connectedDetails[i][0].equals(sendAddress) + " sp:" + Integer.parseInt(connectedDetails[i][1])== sendPort));
 				if(connectedDetails[i][0].equals(sendAddress) == true && Integer.parseInt(connectedDetails[i][1]) == sendPort) {
 						id = i;
@@ -99,13 +99,13 @@ public class GameServer implements Runnable{
 						break;
 	
 				}
-				else if(connectedDetails[i][0].equals(sendAddress) == false) {
+				else if(connectedDetails[i][0].equals(sendAddress) == false && playerCount < maxPlayers && i==playerCount-1) {
 						//new Connection
 					if(playerCount < maxPlayers) {
 						connectedDetails[i+1][0] = sendAddress;
 						connectedDetails[i+1][1] = sendPort+"";
 						playerCount++;
-						System.out.println("new Connection!");
+						System.out.println("new Connection! pc: " + playerCount);
 						break;
 					}
 				}
