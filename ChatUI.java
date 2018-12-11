@@ -1,24 +1,29 @@
 // Chat client for game
 
 import java.awt.*;
+import java.awt.event.*;
 import javax.swing.*;
 import java.net.*;
 
 public class ChatUI extends JPanel{
 	
-	JPanel panelChats;
-	JPanel panelButton;
-	JPanel allPanels;
+	JPanel panelChats, panelButton, allPanels;
 	JFrame frame;
 	JScrollPane fieldChats;
 	JTextField fieldInsertChats;
-	JButton sendButton;
-	JButton disconnectButton;
+	JButton sendButton, disconnectButton;
+	JTextArea textToAdd, nameOfUser;
+	ChatClient client;
 
-	public ChatUI(){
+	public ChatUI(String name){
+		this.client = new ChatClient(name);
+
+		textToAdd = new JTextArea();
+		nameOfUser = new JTextArea();
 		//------1st panel 
-		fieldChats = new JScrollPane();
+		fieldChats = new JScrollPane(textToAdd);
 		fieldChats.setPreferredSize(new Dimension(600, 60));
+		fieldChats.setViewportView(textToAdd);
 		panelChats = new JPanel();
 		panelChats.add(fieldChats);
 
@@ -26,6 +31,14 @@ public class ChatUI extends JPanel{
 		fieldInsertChats = new JTextField("");
 		fieldInsertChats.setPreferredSize(new Dimension(400, 35));	
 		sendButton = new JButton("Send");
+
+		sendButton.addActionListener(new ActionListener(){
+			public void actionPerformed(ActionEvent e){
+
+				textToAdd.setText(textToAdd.getText() + "\n" + name + ": " + fieldInsertChats.getText());
+			}
+		});
+
 		sendButton.setPreferredSize(new Dimension(100, 35));
 		disconnectButton = new JButton("Disconnect");	
 		disconnectButton.setPreferredSize(new Dimension(100, 35));
