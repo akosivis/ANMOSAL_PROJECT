@@ -14,8 +14,7 @@ public class MainPanelServer extends JFrame {
 	
 		System.out.println(address);
 		g_panel =  new GamePanel(name, address, 4443, player, false, team);
-		
-		g_server = new GameServer(player, port);
+
 		chat_server = new ChatForServer();
 		
 		g_server = new GameServer(player, port, address);
