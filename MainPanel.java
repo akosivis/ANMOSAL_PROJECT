@@ -1,4 +1,5 @@
 import java.awt.BorderLayout;
+import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
@@ -6,6 +7,7 @@ import java.awt.event.ActionListener;
 import java.net.UnknownHostException;
 
 import javax.swing.ButtonGroup;
+import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
@@ -34,11 +36,16 @@ public class MainPanel extends JFrame implements ActionListener{
 	private JButton serverButton = new JButton("Start as Server");
 	private JButton clientButton = new JButton("Start as Client");
 	private JButton start = new JButton("START");
+	private JButton tutorial = new JButton("Tutorial");
+	
 	private JRadioButton server = new JRadioButton("server");
 	private JRadioButton client = new JRadioButton("client");
 	
 	private JRadioButton red = new JRadioButton("RED");
 	private JRadioButton blue = new JRadioButton("BLUE");
+	
+	private ImageIcon label1 = new ImageIcon("img/tu1.png");
+	private ImageIcon label2 = new ImageIcon("img/tut2.png");
 	
 	JPanel centerP =  new JPanel();
 	JPanel topP = new JPanel();
@@ -48,9 +55,10 @@ public class MainPanel extends JFrame implements ActionListener{
 	
 	int team = 1;
 	String startAs="server";
+	
+	
 	public void initialize(){
-
-		
+//		TutorialPanel tp = new TutorialPanel();
 		
 		serverButton.addActionListener(this);
 		clientButton.addActionListener(this);
@@ -59,6 +67,7 @@ public class MainPanel extends JFrame implements ActionListener{
 		blue.addActionListener(this);
 		server.addActionListener(this);
 		client.addActionListener(this);
+		tutorial.addActionListener(this);
 		
 		startAsGroup.add(server);
 		startAsGroup.add(client);
@@ -66,9 +75,11 @@ public class MainPanel extends JFrame implements ActionListener{
 		teamGroup.add(red);
 		teamGroup.add(blue);
 		
-		topP.setLayout(new BorderLayout());
-		
+		this.setLayout(new BorderLayout());
+		this.setBackground(Color.WHITE);
+
 		JPanel nameP = new JPanel();
+		nameP.add(tutorial);
 		nameP.add(nameLabel);
 		nameP.add(nameText);
 		topP.add(nameP, BorderLayout.WEST);
@@ -100,10 +111,13 @@ public class MainPanel extends JFrame implements ActionListener{
 		centerP.add(playersLabel);
 		centerP.add(playersText);
 		
+		
 		this.setLayout(new BorderLayout());
+//		this.add(tp, BorderLayout.EAST);
 		this.add(topP, BorderLayout.NORTH);
 		this.add(centerP, BorderLayout.CENTER);
 		this.add(start, BorderLayout.SOUTH);
+		
 //		this.add(red);
 //		this.add(blue);
 //		this.add(hostLabel);
@@ -115,7 +129,7 @@ public class MainPanel extends JFrame implements ActionListener{
 //		this.add(serverButton);
 //		this.add(clientButton);
 		
-		setPreferredSize(new Dimension(600,200));
+		setPreferredSize(new Dimension(600,300));
 		setDefaultCloseOperation(EXIT_ON_CLOSE);
 		setResizable(false);
 		pack();
@@ -141,15 +155,20 @@ public class MainPanel extends JFrame implements ActionListener{
 			team=2;
 		}
 		
+		if(b.getSource()==tutorial) {
+			TutorialPanel tp = new TutorialPanel();
+		}
+		
 		if(b.getSource()==server) {
 //			hostText.setEnabled(false);
-			ipLabel.setEnabled(false);
+			ipText.setEnabled(false);
 			portText.setEnabled(false);
 			portText.setText("4444");
 			startAs="server";
 		}
 		
 		if(b.getSource()==client) {
+			ipText.setEnabled(true);
 			hostText.setEnabled(true);
 			portText.setEnabled(true);
 			startAs="client";
